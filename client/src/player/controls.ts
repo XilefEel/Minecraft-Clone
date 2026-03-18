@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import type { World } from "../world/world";
 
 export function initPointerLock(
   canvas: HTMLCanvasElement,
@@ -26,11 +27,15 @@ export function initPointerLock(
   });
 }
 
-export function addRaycast(scene: THREE.Scene, camera: THREE.Camera) {
+export function addRaycast(
+  world: World,
+  scene: THREE.Scene,
+  camera: THREE.Camera,
+) {
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
 
-  window.addEventListener("click", (e) => {
+  window.addEventListener("mousedown", (e) => {
     mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
@@ -38,9 +43,19 @@ export function addRaycast(scene: THREE.Scene, camera: THREE.Camera) {
     const intersects = raycaster.intersectObjects(scene.children);
 
     if (intersects.length > 0) {
-      const mesh = intersects[0].object as THREE.Mesh;
-      const material = mesh.material as THREE.MeshStandardMaterial;
-      console.log("Clicked on:", mesh, "Color:", material.color.getHexString());
+      const point = intersects[0].point;
+      const normal = intersects[0].face!.normal!;
+
+      const blockX = Math.floor(point.x - normal.x * 0.5);
+      const blockY = Math.floor(point.y - normal.y * 0.5);
+      const blockZ = Math.floor(point.z - normal.z * 0.5);
+
+      console.log(`Block coordinates: (${blockX}, ${blockY}, ${blockZ})`);
+
+      const chunk = world.setBlock(blockX, blockY, blockZ, 0);
+      if (!chunk) return;
+
+      world.remeshChunk(chunk, scene);
     }
   });
 }

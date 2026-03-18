@@ -6,7 +6,7 @@ export const CONFIG = {
     fogFar: 60,
   },
   camera: {
-    fov: 45,
+    fov: 60,
     near: 0.1,
     far: 100,
     initialPos: { x: 8, y: 20, z: 30 },

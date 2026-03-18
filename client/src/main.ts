@@ -16,7 +16,7 @@ function main() {
   const movementControls = initMovement(world, camera);
 
   initPointerLock(canvas, camera);
-  addRaycast(scene, camera);
+  addRaycast(world, scene, camera);
 
   addGUI(ambient, sun, camera, scene);
 

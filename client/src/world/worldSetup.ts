@@ -12,8 +12,12 @@ export function createWorld(scene: THREE.Scene): World {
     for (let z = 0; z < WORLD_SIZE; z++) {
       const chunk = new Chunk(x, z);
       chunk.fill();
+
+      const mesh = meshChunk(chunk);
       world.addChunk(chunk);
-      scene.add(meshChunk(chunk));
+      world.meshMap.set(world.getKey(x, z), mesh);
+
+      scene.add(mesh);
     }
   }
 

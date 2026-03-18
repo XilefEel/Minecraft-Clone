@@ -1,12 +1,10 @@
+import * as THREE from "three";
 import { Chunk, CHUNK_SIZE } from "./chunk";
+import { meshChunk } from "./chunkMesher";
 
 export class World {
   chunkMap: Map<number, Chunk> = new Map();
-
-  // magic idk
-  private getKey(x: number, z: number) {
-    return (x << 16) | (z & 0xffff);
-  }
+  meshMap: Map<number, THREE.Mesh> = new Map();
 
   private toLocalCoord(coord: number): number {
     return ((Math.floor(coord) % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
@@ -14,6 +12,23 @@ export class World {
 
   private toChunkCoord(coord: number): number {
     return Math.floor(coord / CHUNK_SIZE);
+  }
+
+  // magic idk
+  getKey(x: number, z: number): number {
+    return (x << 16) | (z & 0xffff);
+  }
+
+  remeshChunk(chunk: Chunk, scene: THREE.Scene) {
+    const key = this.getKey(chunk.x, chunk.z);
+    const oldMesh = this.meshMap.get(key);
+    if (oldMesh) {
+      scene.remove(oldMesh);
+      oldMesh.geometry.dispose();
+    }
+    const newMesh = meshChunk(chunk);
+    this.meshMap.set(key, newMesh);
+    scene.add(newMesh);
   }
 
   addChunk(chunk: Chunk) {
@@ -35,5 +50,18 @@ export class World {
 
   isSolid(x: number, y: number, z: number): boolean {
     return this.getBlock(x, y, z) !== 0;
+  }
+
+  setBlock(x: number, y: number, z: number, type: number) {
+    const chunkX = this.toChunkCoord(x);
+    const chunkZ = this.toChunkCoord(z);
+    const chunk = this.chunkMap.get(this.getKey(chunkX, chunkZ));
+    if (!chunk) return;
+
+    const localX = this.toLocalCoord(x);
+    const localZ = this.toLocalCoord(z);
+    chunk.setBlock(localX, Math.floor(y), localZ, type);
+
+    return chunk;
   }
 }
