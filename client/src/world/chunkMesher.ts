@@ -1,12 +1,6 @@
 import * as THREE from "three";
 import { Chunk, CHUNK_SIZE } from "./chunk";
-
-const BLOCK_COLORS: Record<number, number> = {
-  1: 0x5b8a3c, // grass
-  2: 0x7d7d7d, // stone
-  3: 0x8b5e3c, // dirt
-  4: 0x2d2d2d, // bedrock
-};
+import { BLOCK_COLORS } from "./blocks";
 
 const FACES = [
   {

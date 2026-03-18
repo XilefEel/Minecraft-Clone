@@ -1,23 +1,24 @@
 import * as THREE from "three";
-import { createScene } from "./scene";
-import { addLights } from "./lights";
-import { addObjects } from "./objects";
-import { addRaycast, initMovement, initPointerLock } from "./controls";
-import { addGUI } from "./gui";
+import { createScene } from "./scene/scene";
+import { addLights } from "./scene/lights";
+import { createWorld } from "./world/worldSetup";
+import { addRaycast, initPointerLock } from "./player/controls";
+import { addGUI } from "./scene/gui";
 import "./style.css";
+import { initMovement } from "./player/movement";
 
 function main() {
   // setup
   const { canvas, renderer, scene, camera } = createScene();
 
-  const world = addObjects(scene);
+  const world = createWorld(scene);
   const { ambient, sun } = addLights(scene);
   const movementControls = initMovement(world, camera);
 
   initPointerLock(canvas, camera);
   addRaycast(scene, camera);
 
-  addGUI(ambient, sun);
+  addGUI(ambient, sun, camera, scene);
 
   // important
   function resizeDisplay(renderer: THREE.WebGLRenderer) {
