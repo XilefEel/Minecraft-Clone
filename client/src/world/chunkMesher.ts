@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { Chunk, CHUNK_SIZE } from "./chunk";
+import { Chunk, CHUNK_HEIGHT, CHUNK_SIZE } from "./chunk";
 import { BLOCK_COLORS } from "./blocks";
 
 const FACES = [
@@ -65,7 +65,7 @@ export function meshChunk(chunk: Chunk): THREE.Mesh {
   const indices: number[] = [];
 
   for (let x = 0; x < CHUNK_SIZE; x++) {
-    for (let y = 0; y < CHUNK_SIZE; y++) {
+    for (let y = 0; y < CHUNK_HEIGHT; y++) {
       for (let z = 0; z < CHUNK_SIZE; z++) {
         const block = chunk.getBlock(x, y, z);
         // air

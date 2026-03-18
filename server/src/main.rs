@@ -10,6 +10,8 @@ use crate::{chunk::Chunk, protocol::ServerMessage};
 mod chunk;
 mod protocol;
 
+const WORLD_SIZE: i32 = 6;
+
 #[tokio::main]
 async fn main() {
     let app = Router::new()
@@ -33,21 +35,25 @@ async fn ws_handler(ws: WebSocketUpgrade) -> impl IntoResponse {
 async fn handle_socket(mut socket: WebSocket) {
     println!("Client connected!");
 
-    let mut chunk = Chunk::new();
-    chunk.fill_flat();
+    for cx in 0..WORLD_SIZE {
+        for cz in 0..WORLD_SIZE {
+            let mut chunk = Chunk::new();
+            chunk.fill_noise(cx, cz);
 
-    let msg = ServerMessage::ChunkData {
-        cx: 0,
-        cz: 0,
-        blocks: chunk.blocks,
-    };
+            let msg = ServerMessage::ChunkData {
+                cx,
+                cz,
+                blocks: chunk.blocks,
+            };
 
-    let bytes = rmp_serde::to_vec_named(&msg).unwrap();
+            let bytes = rmp_serde::to_vec_named(&msg).unwrap();
 
-    socket
-        .send(axum::extract::ws::Message::Binary(bytes.into()))
-        .await
-        .unwrap();
+            socket
+                .send(axum::extract::ws::Message::Binary(bytes.into()))
+                .await
+                .unwrap();
+        }
+    }
 
     println!("Chunk Sent!");
 }

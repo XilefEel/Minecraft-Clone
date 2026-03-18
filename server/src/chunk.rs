@@ -1,17 +1,20 @@
+use noise::{NoiseFn, Perlin};
+
 pub const CHUNK_SIZE: i32 = 16;
+pub const CHUNK_HEIGHT: i32 = 64;
 
 pub struct Chunk {
     pub blocks: Vec<u8>,
 }
 
 fn get_index(x: i32, y: i32, z: i32) -> usize {
-    (x + y * CHUNK_SIZE + z * CHUNK_SIZE * CHUNK_SIZE) as usize
+    (x + y * CHUNK_SIZE + z * CHUNK_SIZE * CHUNK_HEIGHT) as usize
 }
 
 impl Chunk {
     pub fn new() -> Self {
         Self {
-            blocks: vec![0; (CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE) as usize],
+            blocks: vec![0; (CHUNK_SIZE * CHUNK_HEIGHT * CHUNK_SIZE) as usize],
         }
     }
 
@@ -25,17 +28,46 @@ impl Chunk {
         self.blocks[index] = block;
     }
 
-    pub fn fill_flat(&mut self) {
+    // pub fn fill_flat(&mut self) {
+    //     for x in 0..CHUNK_SIZE {
+    //         for z in 0..CHUNK_SIZE {
+    //             self.set_block(x, 0, z, 4); // bedrock
+    //             for y in 1..=4 {
+    //                 self.set_block(x, y, z, 2); // stone
+    //             }
+    //             for y in 5..=6 {
+    //                 self.set_block(x, y, z, 3); // dirt
+    //             }
+    //             self.set_block(x, 7, z, 1); // grass
+    //         }
+    //     }
+    // }
+
+    pub fn fill_noise(&mut self, cx: i32, cz: i32) {
+        let perlin = Perlin::new(42); // seed
+
         for x in 0..CHUNK_SIZE {
             for z in 0..CHUNK_SIZE {
-                self.set_block(x, 0, z, 4); // bedrock
-                for y in 1..=4 {
-                    self.set_block(x, y, z, 2); // stone
+                let world_x = cx * CHUNK_SIZE + x;
+                let world_z = cz * CHUNK_SIZE + z;
+
+                let n = perlin.get([world_x as f64 / 50.0, world_z as f64 / 50.0]);
+                let height = (n * 8.0 + 12.0) as i32; // heights between 4 and 20
+
+                for y in 0..CHUNK_HEIGHT {
+                    let block = if y == 0 {
+                        4 // bedrock
+                    } else if y < height.saturating_sub(3) {
+                        2 // stone
+                    } else if y < height {
+                        3 // dirt
+                    } else if y == height {
+                        1 // grass
+                    } else {
+                        0 // air
+                    };
+                    self.set_block(x, y, z, block);
                 }
-                for y in 5..=6 {
-                    self.set_block(x, y, z, 3); // dirt
-                }
-                self.set_block(x, 7, z, 1); // grass
             }
         }
     }

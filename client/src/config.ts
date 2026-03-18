@@ -8,7 +8,7 @@ export const CONFIG = {
   camera: {
     fov: 60,
     near: 0.1,
-    far: 100,
+    far: 500,
     initialPos: { x: 8, y: 20, z: 30 },
     lookAt: { x: 8, y: 4, z: 8 },
   },

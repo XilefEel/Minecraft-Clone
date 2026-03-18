@@ -1,4 +1,5 @@
 export const CHUNK_SIZE = 16;
+export const CHUNK_HEIGHT = 64;
 
 export class Chunk {
   blocks: Uint8Array;
@@ -8,11 +9,11 @@ export class Chunk {
   constructor(x: number, z: number) {
     this.x = x;
     this.z = z;
-    this.blocks = new Uint8Array(CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE);
+    this.blocks = new Uint8Array(CHUNK_SIZE * CHUNK_HEIGHT * CHUNK_SIZE);
   }
 
   private getIndex(x: number, y: number, z: number): number {
-    return x + y * CHUNK_SIZE + z * CHUNK_SIZE * CHUNK_SIZE;
+    return x + y * CHUNK_SIZE + z * CHUNK_SIZE * CHUNK_HEIGHT;
   }
 
   inChunk(x: number, y: number, z: number): boolean {
@@ -20,7 +21,7 @@ export class Chunk {
       x >= 0 &&
       x < CHUNK_SIZE &&
       y >= 0 &&
-      y < CHUNK_SIZE &&
+      y < CHUNK_HEIGHT &&
       z >= 0 &&
       z < CHUNK_SIZE
     );
