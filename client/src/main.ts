@@ -6,6 +6,7 @@ import { addRaycast, initPointerLock } from "./player/controls";
 import { addGUI } from "./scene/gui";
 import "./style.css";
 import { initMovement } from "./player/movement";
+import { decode } from "@msgpack/msgpack";
 
 function main() {
   // setup
@@ -45,6 +46,19 @@ function main() {
   }
 
   requestAnimationFrame(render);
+
+  const ws = new WebSocket("ws://localhost:3000/ws");
+  ws.binaryType = "arraybuffer";
+  ws.onmessage = async (e) => {
+    const msg = decode(new Uint8Array(e.data)) as [
+      string,
+      number,
+      number,
+      number,
+    ];
+    console.log("decoded:", msg);
+  };
+  ws.onopen = () => console.log("connected!");
 }
 
 main();
