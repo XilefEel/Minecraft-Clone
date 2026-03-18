@@ -1,15 +1,12 @@
 import * as THREE from "three";
-import { RectAreaLightUniformsLib } from "three/addons/lights/RectAreaLightUniformsLib.js";
-import { RectAreaLightHelper } from "three/addons/helpers/RectAreaLightHelper.js";
 
 export function addLights(scene: THREE.Scene) {
-  RectAreaLightUniformsLib.init();
+  const ambient = new THREE.AmbientLight(0xffffff, 2);
+  scene.add(ambient);
 
-  const light = new THREE.RectAreaLight(0xffffff, 5, 12, 4);
-  light.position.set(0, 10, 0);
-  light.rotation.x = THREE.MathUtils.degToRad(-90);
+  const sun = new THREE.DirectionalLight(0xffffff, 8);
+  sun.position.set(50, 100, 50);
+  scene.add(sun);
 
-  scene.add(light);
-  scene.add(new RectAreaLightHelper(light));
-  return light;
+  return { ambient, sun };
 }

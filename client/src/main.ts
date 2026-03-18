@@ -7,29 +7,32 @@ import { addGUI } from "./gui";
 import "./style.css";
 
 function main() {
+  // setup
   const { canvas, renderer, scene, camera } = createScene();
 
-  const light = addLights(scene);
-
-  addRaycast(scene, camera);
-  addObjects(scene);
-  addGUI(light);
-
-  const movementControls = initMovement(camera, 0.2);
+  const world = addObjects(scene);
+  const { ambient, sun } = addLights(scene);
+  const movementControls = initMovement(world, camera);
 
   initPointerLock(canvas, camera);
+  addRaycast(scene, camera);
 
-  function resizeRendererToDisplaySize(renderer: THREE.WebGLRenderer) {
+  addGUI(ambient, sun);
+
+  // important
+  function resizeDisplay(renderer: THREE.WebGLRenderer) {
     const canvas = renderer.domElement;
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
+
     const needResize = canvas.width !== width || canvas.height !== height;
     if (needResize) renderer.setSize(width, height, false);
     return needResize;
   }
 
+  // render loop
   function render() {
-    if (resizeRendererToDisplaySize(renderer)) {
+    if (resizeDisplay(renderer)) {
       camera.aspect =
         renderer.domElement.clientWidth / renderer.domElement.clientHeight;
       camera.updateProjectionMatrix();

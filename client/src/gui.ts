@@ -1,17 +1,17 @@
 import * as THREE from "three";
 import { GUI } from "three/addons/libs/lil-gui.module.min.js";
 
-export function addGUI(light: THREE.RectAreaLight) {
+export function addGUI(
+  ambient: THREE.AmbientLight,
+  sun: THREE.DirectionalLight,
+) {
   const gui = new GUI();
-  gui.add(light, "intensity", 0, 10, 0.01);
-  gui.add(light, "width", 0, 20);
-  gui.add(light, "height", 0, 20);
 
-  gui.add(light.position, "x", -20, 20);
-  gui.add(light.position, "y", 0, 20);
-  gui.add(light.position, "z", -20, 20);
+  gui.add(ambient, "intensity", 0, 20, 0.01).name("ambient intensity");
 
-  gui.add(light.rotation, "x", -Math.PI, Math.PI, 0.01).name("rotation.x");
-  gui.add(light.rotation, "y", -Math.PI, Math.PI, 0.01).name("rotation.y");
-  gui.add(light.rotation, "z", -Math.PI, Math.PI, 0.01).name("rotation.z");
+  gui.add(sun, "intensity", 0, 20, 0.01).name("sun intensity");
+
+  gui.add(sun.position, "x", -50, 50).name("sun position x");
+  gui.add(sun.position, "y", 0, 100).name("sun position y");
+  gui.add(sun.position, "z", -50, 50).name("sun position z");
 }

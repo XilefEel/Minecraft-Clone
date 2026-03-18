@@ -1,22 +1,57 @@
 import * as THREE from "three";
+import type { World } from "./world";
 
-export function addRaycast(scene: THREE.Scene, camera: THREE.Camera) {
-  const raycaster = new THREE.Raycaster();
-  const mouse = new THREE.Vector2();
+export function initMovement(
+  world: World,
+  camera: THREE.Camera,
+  speed: number = 0.1,
+  gravity: number = -0.01,
+  jumpStrength: number = 0.2,
+) {
+  const keys: Record<string, boolean> = {};
+  const direction = new THREE.Vector3();
+  const right = new THREE.Vector3();
+  let velocityY = 0;
+  let onGround = false;
 
-  window.addEventListener("click", (e) => {
-    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+  window.addEventListener("keydown", (e) => (keys[e.code] = true));
+  window.addEventListener("keyup", (e) => (keys[e.code] = false));
 
-    const intersects = raycaster.intersectObjects(scene.children);
+  return function update() {
+    // horizontal movement
+    camera.getWorldDirection(direction);
+    direction.y = 0;
+    direction.normalize();
+    right.crossVectors(direction, camera.up);
 
-    if (intersects.length > 0) {
-      const mesh = intersects[0].object as THREE.Mesh;
-      const material = mesh.material as THREE.MeshStandardMaterial;
-      material.color.set(Math.random() * 0xffffff);
+    const currentSpeed = keys["ShiftLeft"] ? speed / 3 : speed;
+
+    if (keys["KeyW"]) camera.position.addScaledVector(direction, currentSpeed);
+    if (keys["KeyS"]) camera.position.addScaledVector(direction, -currentSpeed);
+    if (keys["KeyA"]) camera.position.addScaledVector(right, -currentSpeed);
+    if (keys["KeyD"]) camera.position.addScaledVector(right, currentSpeed);
+
+    // jump
+    if (keys["Space"] && onGround) {
+      velocityY = jumpStrength;
+      onGround = false;
     }
-  });
+
+    // gravity
+    velocityY += gravity;
+
+    const nextY = camera.position.y + velocityY;
+    const feetY = nextY - 1.8;
+
+    if (world.isSolid(camera.position.x, feetY, camera.position.z)) {
+      camera.position.y = Math.floor(feetY + 1) + 1.8;
+      velocityY = 0;
+      onGround = true;
+    } else {
+      camera.position.y = nextY;
+      onGround = false;
+    }
+  };
 }
 
 export function initPointerLock(
@@ -52,49 +87,22 @@ export function initPointerLock(
     camera.rotation.x = pitch;
   });
 }
-export function initMovement(
-  camera: THREE.Camera,
-  speed: number = 0.1,
-  gravity: number = -0.02,
-  jumpStrength: number = 0.3,
-) {
-  const keys: Record<string, boolean> = {};
-  const direction = new THREE.Vector3();
-  const right = new THREE.Vector3();
-  let velocityY = 0;
-  let onGround = false;
 
-  window.addEventListener("keydown", (e) => (keys[e.code] = true));
-  window.addEventListener("keyup", (e) => (keys[e.code] = false));
+export function addRaycast(scene: THREE.Scene, camera: THREE.Camera) {
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
 
-  return function update() {
-    // horizontal movement
-    camera.getWorldDirection(direction);
-    direction.y = 0;
-    direction.normalize();
-    right.crossVectors(direction, camera.up);
+  window.addEventListener("click", (e) => {
+    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
 
-    const currentSpeed = keys["ShiftLeft"] ? speed / 3 : speed;
+    const intersects = raycaster.intersectObjects(scene.children);
 
-    if (keys["KeyW"]) camera.position.addScaledVector(direction, currentSpeed);
-    if (keys["KeyS"]) camera.position.addScaledVector(direction, -currentSpeed);
-    if (keys["KeyA"]) camera.position.addScaledVector(right, -currentSpeed);
-    if (keys["KeyD"]) camera.position.addScaledVector(right, currentSpeed);
-
-    // gravity
-    velocityY += gravity;
-    camera.position.y += velocityY;
-
-    if (camera.position.y <= 4.01) {
-      camera.position.y = 4;
-      velocityY = 0;
-      onGround = true;
-    } else {
-      onGround = false;
+    if (intersects.length > 0) {
+      const mesh = intersects[0].object as THREE.Mesh;
+      const material = mesh.material as THREE.MeshStandardMaterial;
+      console.log("Clicked on:", mesh, "Color:", material.color.getHexString());
     }
-
-    if (keys["Space"] && onGround) {
-      velocityY = jumpStrength;
-    }
-  };
+  });
 }
