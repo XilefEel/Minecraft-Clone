@@ -8,6 +8,11 @@ import "./style.css";
 import { initMovement } from "./player/movement";
 import { CONFIG } from "./config";
 import { Player } from "./player/player";
+import { worldToChunk, worldToLocal } from "./world/coordinates";
+
+const worldCoords = document.getElementById("worldCoords")!;
+const chunkCoords = document.getElementById("chunkCoords")!;
+const localCoords = document.getElementById("localCoords")!;
 
 function main() {
   // setup
@@ -55,6 +60,17 @@ function main() {
     camera.rotation.order = "YXZ";
     camera.rotation.y = player.yaw;
     camera.rotation.x = player.pitch;
+
+    const { cx, cz } = worldToChunk(player.position.x, player.position.z);
+    const { lx, ly, lz } = worldToLocal(
+      player.position.x,
+      player.position.y,
+      player.position.z,
+    );
+
+    worldCoords.textContent = `World: ${player.position.x.toFixed(2)}, ${player.position.y.toFixed(2)}, ${player.position.z.toFixed(2)}`;
+    chunkCoords.textContent = `Chunk: ${cx}, ${cz}`;
+    localCoords.textContent = `Local: ${lx}, ${ly}, ${lz}`;
 
     renderer.render(scene, camera);
     requestAnimationFrame(render);

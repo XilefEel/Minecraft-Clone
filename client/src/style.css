@@ -40,3 +40,13 @@ canvas {
     top: 50%;
     transform: translateY(-50%);
 }
+
+#hud {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    color: white;
+    font-family: monospace;
+    font-size: 16px;
+    pointer-events: none;
+}
