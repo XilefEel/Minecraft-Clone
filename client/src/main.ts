@@ -73,6 +73,8 @@ function main() {
     chunkCoords.textContent = `Chunk: ${cx}, ${cz}`;
     localCoords.textContent = `Local: ${lx}, ${ly}, ${lz}`;
 
+    connection.updateRemotePlayers();
+
     renderer.render(scene, camera);
     requestAnimationFrame(render);
   }

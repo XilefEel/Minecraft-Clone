@@ -20,6 +20,7 @@ export type ClientEvent =
 export class Connection {
   private ws: WebSocket;
   private remotePlayersMap = new Map<string, RemotePlayer>();
+  private lastSentPosition = new THREE.Vector3();
 
   constructor(player: Player, world: World, scene: THREE.Scene) {
     this.ws = new WebSocket("ws://localhost:3000/ws");
@@ -34,16 +35,19 @@ export class Connection {
     };
 
     // send player position to server
-    setInterval(
-      () =>
-        this.sendEvent({
-          type: "Move",
-          x: player.position.x,
-          y: player.position.y,
-          z: player.position.z,
-        }),
-      50,
-    );
+    setInterval(() => this.sendPosition(player), 50);
+  }
+
+  private sendPosition(player: Player) {
+    if (player.position.distanceTo(this.lastSentPosition) < 0.01) return;
+
+    this.lastSentPosition.copy(player.position);
+    this.sendEvent({
+      type: "Move",
+      x: player.position.x,
+      y: player.position.y,
+      z: player.position.z,
+    });
   }
 
   private handleEvent(event: ServerEvent, world: World, scene: THREE.Scene) {
@@ -82,6 +86,7 @@ export class Connection {
         this.remotePlayersMap
           .get(event.id)
           ?.updatePosition(event.x, event.y, event.z);
+
         break;
 
       // if a block is updated
@@ -90,6 +95,10 @@ export class Connection {
         world.remeshWithWorldPos(event.x, event.z, scene);
         break;
     }
+  }
+
+  updateRemotePlayers() {
+    this.remotePlayersMap.forEach((p) => p.updateRenderedPosition());
   }
 
   sendEvent(event: ClientEvent) {
