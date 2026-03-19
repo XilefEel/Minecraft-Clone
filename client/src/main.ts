@@ -18,14 +18,13 @@ function main() {
   // setup
   const { canvas, renderer, scene, camera } = createScene();
 
-  const world = createWorld(scene);
-  const { ambient, sun } = addLights(scene);
-
   const player = new Player(
     CONFIG.camera.initialPos.x,
     CONFIG.camera.initialPos.y,
     CONFIG.camera.initialPos.z,
   );
+  const world = createWorld(scene, player);
+  const { ambient, sun } = addLights(scene);
 
   const movementControls = initMovement(world, player);
 
