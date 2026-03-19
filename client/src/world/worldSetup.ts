@@ -7,7 +7,7 @@ import type { Player } from "../player/player";
 export function createWorld(scene: THREE.Scene, player: Player): World {
   const world = new World();
 
-  initConnection(player, (chunk) => {
+  initConnection(player, scene, (chunk) => {
     world.addChunk(chunk);
     const mesh = meshChunk(chunk);
     world.meshMap.set(world.getKey(chunk.x, chunk.z), mesh);

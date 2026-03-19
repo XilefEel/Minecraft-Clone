@@ -1,6 +1,8 @@
 import { decode, encode } from "@msgpack/msgpack";
 import { Chunk } from "../world/chunk";
 import type { Player } from "../player/player";
+import { RemotePlayer } from "../player/remotePlayer";
+import * as THREE from "three";
 
 type ServerMessage =
   | { type: "ChunkData"; cx: number; cz: number; blocks: number[] }
@@ -12,8 +14,11 @@ type ClientMessage = { type: "Move"; x: number; y: number; z: number };
 
 export function initConnection(
   player: Player,
+  scene: THREE.Scene,
   onChunkReceived: (chunk: Chunk) => void,
 ) {
+  const remotePlayerMap = new Map<string, RemotePlayer>();
+
   const ws = new WebSocket(
     import.meta.env.VITE_WS_URL ?? "ws://localhost:3000/ws",
   );
@@ -31,10 +36,17 @@ export function initConnection(
       onChunkReceived(chunk);
     } else if (msg.type === "PlayerJoined") {
       console.log("player joined:", msg.id);
+      remotePlayerMap.set(msg.id, new RemotePlayer(msg.id, scene));
     } else if (msg.type === "PlayerLeft") {
       console.log("player left:", msg.id);
+      remotePlayerMap.get(msg.id)?.remove(scene);
+      remotePlayerMap.delete(msg.id);
     } else if (msg.type === "PlayerPosition") {
       console.log("player moved:", msg.id, msg.x, msg.y, msg.z);
+      if (!remotePlayerMap.has(msg.id)) {
+        remotePlayerMap.set(msg.id, new RemotePlayer(msg.id, scene));
+      }
+      remotePlayerMap.get(msg.id)?.updatePosition(msg.x, msg.y, msg.z);
     }
   };
 
@@ -43,9 +55,9 @@ export function initConnection(
     if (ws.readyState !== WebSocket.OPEN) return;
     const msg: ClientMessage = {
       type: "Move",
-      x: player.position.x === 0 ? 0.0001 : player.position.x,
-      y: player.position.y === 0 ? 0.0001 : player.position.y,
-      z: player.position.z === 0 ? 0.0001 : player.position.z,
+      x: player.position.x,
+      y: player.position.y,
+      z: player.position.z,
     };
     ws.send(encode(msg));
   }, 50);
