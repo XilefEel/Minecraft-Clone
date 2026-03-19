@@ -18,27 +18,23 @@ export function initMovement(world: World, player: Player) {
 
     const speed = CONFIG.player.speed;
 
-    if (keys["KeyW"]) player.position.addScaledVector(direction, speed);
-    if (keys["KeyS"]) player.position.addScaledVector(direction, -speed);
-    if (keys["KeyA"]) player.position.addScaledVector(right, -speed);
-    if (keys["KeyD"]) player.position.addScaledVector(right, speed);
+    const moveVelocity = new THREE.Vector3();
+    if (keys["KeyW"]) moveVelocity.addScaledVector(direction, speed);
+    if (keys["KeyS"]) moveVelocity.addScaledVector(direction, -speed);
+    if (keys["KeyA"]) moveVelocity.addScaledVector(right, -speed);
+    if (keys["KeyD"]) moveVelocity.addScaledVector(right, speed);
 
-    if (keys["Space"] && player.isGrounded) {
-      player.velocity.y += CONFIG.player.jumpStrength;
-      player.isGrounded = false;
-    }
+    player.velocity.x = moveVelocity.x;
+    player.velocity.z = moveVelocity.z;
 
+    // gravity
     player.velocity.y += CONFIG.player.gravity;
 
-    const nextY = player.position.y + player.velocity.y;
-    const feetY = nextY - 0.05;
-
-    if (world.isSolid(player.position.x, feetY, player.position.z)) {
-      player.velocity.y = 0;
-      player.isGrounded = true;
-    } else {
-      player.position.y = nextY;
-      player.isGrounded = false;
+    // jump
+    if (keys["Space"] && player.isGrounded) {
+      player.velocity.y = CONFIG.player.jumpStrength;
     }
+
+    player.update(world);
   };
 }
