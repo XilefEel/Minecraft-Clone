@@ -19,6 +19,13 @@ export class World {
     return (x << 16) | (z & 0xffff);
   }
 
+  remeshWithWorldPos(x: number, z: number, scene: THREE.Scene) {
+    const cx = Math.floor(x / CHUNK_SIZE);
+    const cz = Math.floor(z / CHUNK_SIZE);
+    const chunk = this.chunkMap.get(this.getKey(cx, cz));
+    if (chunk) this.remeshChunk(chunk, scene);
+  }
+
   remeshChunk(chunk: Chunk, scene: THREE.Scene) {
     const key = this.getKey(chunk.x, chunk.z);
     const oldMesh = this.meshMap.get(key);

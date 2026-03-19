@@ -12,15 +12,12 @@ use tokio::net::TcpListener;
 use uuid::Uuid;
 
 use crate::{
-    chunk::Chunk,
     protocol::{ClientMessage, ServerMessage},
     state::{GameState, SharedState},
 };
 mod chunk;
 mod protocol;
 mod state;
-
-const WORLD_SIZE: i32 = 6;
 
 #[tokio::main]
 async fn main() {
@@ -73,19 +70,16 @@ async fn handle_socket(mut socket: WebSocket, state: SharedState) {
             .send(ServerMessage::PlayerJoined { id: id.clone() });
     }
 
-    for cx in -WORLD_SIZE..WORLD_SIZE {
-        for cz in -WORLD_SIZE..WORLD_SIZE {
-            let mut chunk = Chunk::new();
-            chunk.fill_noise(cx, cz);
-
+    {
+        let state = state.read().await;
+        for ((cx, cz), chunk) in &state.world {
             let msg = ServerMessage::ChunkData {
-                cx,
-                cz,
-                blocks: chunk.blocks,
+                cx: *cx,
+                cz: *cz,
+                blocks: chunk.blocks.clone(),
             };
 
             let bytes = rmp_serde::to_vec_named(&msg).unwrap();
-
             if socket.send(Message::Binary(bytes.into())).await.is_err() {
                 return;
             }
@@ -93,7 +87,6 @@ async fn handle_socket(mut socket: WebSocket, state: SharedState) {
     }
 
     // main loop
-
     loop {
         tokio::select! {
             // message from this client
@@ -102,7 +95,6 @@ async fn handle_socket(mut socket: WebSocket, state: SharedState) {
                     Some(Ok(Message::Binary(data))) => {
                         println!("Received message from player {}: {} bytes", id, data.len());
                         if let Ok(client_msg) = from_slice::<ClientMessage>(&data) {
-                            println!("Parsed client message: {:?}", client_msg);
                             match client_msg {
                                 ClientMessage::Move { x, y, z } => {
                                     {
@@ -118,6 +110,24 @@ async fn handle_socket(mut socket: WebSocket, state: SharedState) {
                                     let _ = state.tx.send(ServerMessage::PlayerPosition {
                                         id: id.clone(), x, y, z,
                                     });
+                                }
+                                ClientMessage::BlockBreak { x, y, z } => {
+                                    {
+                                        let mut state = state.write().await;
+                                        let cx = x.div_euclid(16);
+                                        let cz = z.div_euclid(16);
+
+                                        let lx = x.rem_euclid(16) as i32;
+                                        let ly = y as i32;
+                                        let lz = z.rem_euclid(16) as i32;
+
+                                        if let Some(chunk) = state.world.get_mut(&(cx, cz)) {
+                                            chunk.set_block(lx, ly, lz, 0);
+                                        }
+                                    }
+
+                                    let state = state.read().await;
+                                    let _ = state.tx.send(ServerMessage::BlockUpdate { x, y, z, block_id: 0});
                                 }
                             }
                         } else {

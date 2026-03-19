@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import type { World } from "../world/world";
 import type { Player } from "./player";
+import { encode } from "@msgpack/msgpack";
 
 export function initPointerLock(canvas: HTMLCanvasElement, player: Player) {
   canvas.addEventListener("click", () => {
@@ -18,7 +18,7 @@ export function initPointerLock(canvas: HTMLCanvasElement, player: Player) {
 }
 
 export function addRaycast(
-  world: World,
+  ws: WebSocket,
   scene: THREE.Scene,
   camera: THREE.Camera,
 ) {
@@ -40,10 +40,7 @@ export function addRaycast(
       const blockY = Math.floor(point.y - normal.y * 0.5);
       const blockZ = Math.floor(point.z - normal.z * 0.5);
 
-      const chunk = world.setBlock(blockX, blockY, blockZ, 0);
-      if (!chunk) return;
-
-      world.remeshChunk(chunk, scene);
+      ws.send(encode({ type: "BlockBreak", x: blockX, y: blockY, z: blockZ }));
     }
   });
 }

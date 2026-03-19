@@ -23,13 +23,13 @@ function main() {
     CONFIG.camera.initialPos.y,
     CONFIG.camera.initialPos.z,
   );
-  const world = createWorld(scene, player);
+  const { world, ws } = createWorld(scene, player);
   const { ambient, sun } = addLights(scene);
 
   const movementControls = initMovement(world, player);
 
   initPointerLock(canvas, player);
-  addRaycast(world, scene, camera);
+  addRaycast(ws, scene, camera);
 
   addGUI(ambient, sun, camera, scene);
 

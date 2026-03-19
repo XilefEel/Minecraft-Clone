@@ -3,16 +3,25 @@ import { Chunk } from "../world/chunk";
 import type { Player } from "../player/player";
 import { RemotePlayer } from "../player/remotePlayer";
 import * as THREE from "three";
+import type { World } from "../world/world";
 
 type ServerMessage =
   | { type: "ChunkData"; cx: number; cz: number; blocks: number[] }
   | { type: "PlayerJoined"; id: string }
   | { type: "PlayerLeft"; id: string }
-  | { type: "PlayerPosition"; id: string; x: number; y: number; z: number };
+  | { type: "PlayerPosition"; id: string; x: number; y: number; z: number }
+  | {
+      type: "BlockUpdate";
+      x: number;
+      y: number;
+      z: number;
+      block: number;
+    };
 
 type ClientMessage = { type: "Move"; x: number; y: number; z: number };
 
 export function initConnection(
+  world: World,
   player: Player,
   scene: THREE.Scene,
   onChunkReceived: (chunk: Chunk) => void,
@@ -47,6 +56,9 @@ export function initConnection(
         remotePlayerMap.set(msg.id, new RemotePlayer(msg.id, scene));
       }
       remotePlayerMap.get(msg.id)?.updatePosition(msg.x, msg.y, msg.z);
+    } else if (msg.type === "BlockUpdate") {
+      world.setBlock(msg.x, msg.y, msg.z, msg.block);
+      world.remeshWithWorldPos(msg.x, msg.z, scene);
     }
   };
 

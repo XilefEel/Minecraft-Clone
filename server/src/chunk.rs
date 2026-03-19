@@ -18,30 +18,10 @@ impl Chunk {
         }
     }
 
-    pub fn get_block(&self, x: i32, y: i32, z: i32) -> u8 {
-        let index = (get_index(x, y, z)) as usize;
-        self.blocks[index]
-    }
-
     pub fn set_block(&mut self, x: i32, y: i32, z: i32, block: u8) {
         let index = (get_index(x, y, z)) as usize;
         self.blocks[index] = block;
     }
-
-    // pub fn fill_flat(&mut self) {
-    //     for x in 0..CHUNK_SIZE {
-    //         for z in 0..CHUNK_SIZE {
-    //             self.set_block(x, 0, z, 4); // bedrock
-    //             for y in 1..=4 {
-    //                 self.set_block(x, y, z, 2); // stone
-    //             }
-    //             for y in 5..=6 {
-    //                 self.set_block(x, y, z, 3); // dirt
-    //             }
-    //             self.set_block(x, 7, z, 1); // grass
-    //         }
-    //     }
-    // }
 
     pub fn fill_noise(&mut self, cx: i32, cz: i32) {
         let perlin = Perlin::new(42); // seed
