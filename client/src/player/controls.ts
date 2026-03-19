@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import type { Player } from "./player";
-import { encode } from "@msgpack/msgpack";
+import { Connection } from "../network/connection";
 
 export function initPointerLock(canvas: HTMLCanvasElement, player: Player) {
   canvas.addEventListener("click", () => {
@@ -17,19 +17,18 @@ export function initPointerLock(canvas: HTMLCanvasElement, player: Player) {
   });
 }
 
-export function addRaycast(
-  ws: WebSocket,
+export function initRaycast(
+  connection: Connection,
   scene: THREE.Scene,
   camera: THREE.Camera,
 ) {
   const raycaster = new THREE.Raycaster();
-  const mouse = new THREE.Vector2();
 
   window.addEventListener("mousedown", (e) => {
-    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+    if (e.button !== 0) return;
+    if (document.pointerLockElement === null) return;
 
+    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
     const intersects = raycaster.intersectObjects(scene.children);
 
     if (intersects.length > 0) {
@@ -40,7 +39,13 @@ export function addRaycast(
       const blockY = Math.floor(point.y - normal.y * 0.5);
       const blockZ = Math.floor(point.z - normal.z * 0.5);
 
-      ws.send(encode({ type: "BlockBreak", x: blockX, y: blockY, z: blockZ }));
+      // send block break to server
+      connection.sendEvent({
+        type: "BlockBreak",
+        x: blockX,
+        y: blockY,
+        z: blockZ,
+      });
     }
   });
 }

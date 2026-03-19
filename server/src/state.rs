@@ -1,5 +1,5 @@
 use crate::chunk::Chunk;
-use crate::protocol::ServerMessage;
+use crate::protocol::ServerEvent;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -16,11 +16,11 @@ pub struct PlayerState {
 pub struct GameState {
     pub players: HashMap<String, PlayerState>,
     pub world: HashMap<(i32, i32), Chunk>,
-    pub tx: broadcast::Sender<ServerMessage>,
+    pub tx: broadcast::Sender<ServerEvent>,
 }
 
 impl GameState {
-    pub fn new() -> (Arc<RwLock<Self>>, broadcast::Sender<ServerMessage>) {
+    pub fn new() -> (Arc<RwLock<Self>>, broadcast::Sender<ServerEvent>) {
         let (tx, _) = broadcast::channel(100);
         let mut world = HashMap::new();
         for cx in -WORLD_SIZE..=WORLD_SIZE {

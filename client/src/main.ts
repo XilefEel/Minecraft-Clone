@@ -1,14 +1,15 @@
 import * as THREE from "three";
-import { createScene } from "./scene/scene";
-import { addLights } from "./scene/lights";
-import { createWorld } from "./world/worldSetup";
-import { addRaycast, initPointerLock } from "./player/controls";
-import { addGUI } from "./scene/gui";
-import "./style.css";
-import { initMovement } from "./player/movement";
 import { CONFIG } from "./config";
+import { Connection } from "./network/connection";
+import { initPointerLock, initRaycast } from "./player/controls";
+import { initMovement } from "./player/movement";
 import { Player } from "./player/player";
+import { addLights } from "./scene/lights";
+import { createScene } from "./scene/scene";
+import "./style.css";
+import { meshChunk } from "./world/chunkMesher";
 import { worldToChunk, worldToLocal } from "./world/coordinates";
+import { World } from "./world/world";
 
 const worldCoords = document.getElementById("worldCoords")!;
 const chunkCoords = document.getElementById("chunkCoords")!;
@@ -18,20 +19,21 @@ function main() {
   // setup
   const { canvas, renderer, scene, camera } = createScene();
 
+  const world = new World();
   const player = new Player(
     CONFIG.camera.initialPos.x,
     CONFIG.camera.initialPos.y,
     CONFIG.camera.initialPos.z,
   );
-  const { world, ws } = createWorld(scene, player);
-  const { ambient, sun } = addLights(scene);
+
+  const connection = new Connection(player, world, scene);
 
   const movementControls = initMovement(world, player);
 
   initPointerLock(canvas, player);
-  addRaycast(ws, scene, camera);
-
-  addGUI(ambient, sun, camera, scene);
+  initRaycast(connection, scene, camera);
+  addLights(scene);
+  // addGUI(ambient, sun, camera, scene);
 
   // important
   function resizeDisplay(renderer: THREE.WebGLRenderer) {

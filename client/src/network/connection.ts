@@ -1,78 +1,99 @@
 import { decode, encode } from "@msgpack/msgpack";
 import { Chunk } from "../world/chunk";
 import type { Player } from "../player/player";
-import { RemotePlayer } from "../player/remotePlayer";
-import * as THREE from "three";
 import type { World } from "../world/world";
+import * as THREE from "three";
+import { RemotePlayer } from "../player/remotePlayer";
+import { meshChunk } from "../world/chunkMesher";
 
-type ServerMessage =
+export type ServerEvent =
   | { type: "ChunkData"; cx: number; cz: number; blocks: number[] }
   | { type: "PlayerJoined"; id: string }
   | { type: "PlayerLeft"; id: string }
   | { type: "PlayerPosition"; id: string; x: number; y: number; z: number }
-  | {
-      type: "BlockUpdate";
-      x: number;
-      y: number;
-      z: number;
-      block: number;
+  | { type: "BlockUpdate"; x: number; y: number; z: number; block: number };
+
+export type ClientEvent =
+  | { type: "Move"; x: number; y: number; z: number }
+  | { type: "BlockBreak"; x: number; y: number; z: number };
+
+export class Connection {
+  private ws: WebSocket;
+  private remotePlayersMap = new Map<string, RemotePlayer>();
+
+  constructor(player: Player, world: World, scene: THREE.Scene) {
+    this.ws = new WebSocket("ws://localhost:3000/ws");
+    this.ws.binaryType = "arraybuffer";
+
+    this.ws.onopen = () => console.log("connected to server");
+    this.ws.onclose = () => console.log("disconnected from server");
+
+    this.ws.onmessage = (e) => {
+      const event = decode(new Uint8Array(e.data)) as ServerEvent;
+      this.handleEvent(event, world, scene);
     };
 
-type ClientMessage = { type: "Move"; x: number; y: number; z: number };
+    // send player position to server
+    setInterval(
+      () =>
+        this.sendEvent({
+          type: "Move",
+          x: player.position.x,
+          y: player.position.y,
+          z: player.position.z,
+        }),
+      50,
+    );
+  }
 
-export function initConnection(
-  world: World,
-  player: Player,
-  scene: THREE.Scene,
-  onChunkReceived: (chunk: Chunk) => void,
-) {
-  const remotePlayerMap = new Map<string, RemotePlayer>();
+  private handleEvent(event: ServerEvent, world: World, scene: THREE.Scene) {
+    switch (event.type) {
+      // if received chunk data
+      case "ChunkData":
+        const chunk = new Chunk(event.cx, event.cz);
+        chunk.blocks = new Uint8Array(event.blocks);
 
-  const ws = new WebSocket(
-    import.meta.env.VITE_WS_URL ?? "ws://localhost:3000/ws",
-  );
-  ws.binaryType = "arraybuffer";
+        world.addChunk(chunk);
+        const mesh = meshChunk(chunk);
+        world.meshMap.set(world.getKey(chunk.x, chunk.z), mesh);
+        scene.add(mesh);
+        break;
 
-  ws.onopen = () => console.log("connected to server");
-  ws.onclose = () => console.log("disconnected from server");
+      // if a new player joined
+      case "PlayerJoined":
+        this.remotePlayersMap.set(event.id, new RemotePlayer(event.id, scene));
+        break;
 
-  ws.onmessage = (e) => {
-    const msg = decode(new Uint8Array(e.data)) as ServerMessage;
+      // if a player left
+      case "PlayerLeft":
+        this.remotePlayersMap.get(event.id)?.remove(scene);
+        this.remotePlayersMap.delete(event.id);
+        break;
 
-    if (msg.type === "ChunkData") {
-      const chunk = new Chunk(msg.cx, msg.cz);
-      chunk.blocks = new Uint8Array(msg.blocks);
-      onChunkReceived(chunk);
-    } else if (msg.type === "PlayerJoined") {
-      console.log("player joined:", msg.id);
-      remotePlayerMap.set(msg.id, new RemotePlayer(msg.id, scene));
-    } else if (msg.type === "PlayerLeft") {
-      console.log("player left:", msg.id);
-      remotePlayerMap.get(msg.id)?.remove(scene);
-      remotePlayerMap.delete(msg.id);
-    } else if (msg.type === "PlayerPosition") {
-      console.log("player moved:", msg.id, msg.x, msg.y, msg.z);
-      if (!remotePlayerMap.has(msg.id)) {
-        remotePlayerMap.set(msg.id, new RemotePlayer(msg.id, scene));
-      }
-      remotePlayerMap.get(msg.id)?.updatePosition(msg.x, msg.y, msg.z);
-    } else if (msg.type === "BlockUpdate") {
-      world.setBlock(msg.x, msg.y, msg.z, msg.block);
-      world.remeshWithWorldPos(msg.x, msg.z, scene);
+      // if a player position changes
+      case "PlayerPosition":
+        if (!this.remotePlayersMap.has(event.id)) {
+          this.remotePlayersMap.set(
+            event.id,
+            new RemotePlayer(event.id, scene),
+          );
+        }
+
+        this.remotePlayersMap
+          .get(event.id)
+          ?.updatePosition(event.x, event.y, event.z);
+        break;
+
+      // if a block is updated
+      case "BlockUpdate":
+        world.setBlock(event.x, event.y, event.z, event.block);
+        world.remeshWithWorldPos(event.x, event.z, scene);
+        break;
     }
-  };
+  }
 
-  // send position every 50ms
-  setInterval(() => {
-    if (ws.readyState !== WebSocket.OPEN) return;
-    const msg: ClientMessage = {
-      type: "Move",
-      x: player.position.x,
-      y: player.position.y,
-      z: player.position.z,
-    };
-    ws.send(encode(msg));
-  }, 50);
-
-  return ws;
+  sendEvent(event: ClientEvent) {
+    if (this.ws.readyState !== WebSocket.OPEN) return;
+    this.ws.send(encode(event));
+  }
 }
