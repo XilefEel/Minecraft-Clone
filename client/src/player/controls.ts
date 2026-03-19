@@ -25,7 +25,6 @@ export function initRaycast(
   const raycaster = new THREE.Raycaster();
 
   window.addEventListener("mousedown", (e) => {
-    if (e.button !== 0) return;
     if (document.pointerLockElement === null) return;
 
     raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
@@ -35,17 +34,34 @@ export function initRaycast(
       const point = intersects[0].point;
       const normal = intersects[0].face!.normal!;
 
-      const blockX = Math.floor(point.x - normal.x * 0.5);
-      const blockY = Math.floor(point.y - normal.y * 0.5);
-      const blockZ = Math.floor(point.z - normal.z * 0.5);
+      if (e.button === 0) {
+        // left click — break
+        const blockX = Math.floor(point.x - normal.x * 0.5);
+        const blockY = Math.floor(point.y - normal.y * 0.5);
+        const blockZ = Math.floor(point.z - normal.z * 0.5);
 
-      // send block break to server
-      connection.sendEvent({
-        type: "BlockBreak",
-        x: blockX,
-        y: blockY,
-        z: blockZ,
-      });
+        // send block break to server
+        connection.sendEvent({
+          type: "BlockBreak",
+          x: blockX,
+          y: blockY,
+          z: blockZ,
+        });
+      } else if (e.button === 2) {
+        // right click — place
+        const blockX = Math.floor(point.x + normal.x * 0.5);
+        const blockY = Math.floor(point.y + normal.y * 0.5);
+        const blockZ = Math.floor(point.z + normal.z * 0.5);
+
+        // send block break to server
+        connection.sendEvent({
+          type: "BlockPlace",
+          x: blockX,
+          y: blockY,
+          z: blockZ,
+          block_id: 1,
+        });
+      }
     }
   });
 }

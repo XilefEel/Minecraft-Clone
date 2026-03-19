@@ -115,6 +115,25 @@ async fn process_client_message(msg: ClientEvent, state: &SharedState, id: &str)
                 block_id: 0,
             });
         }
+
+        // when a player places a block
+        ClientEvent::BlockPlace { x, y, z, block_id } => {
+            {
+                let mut state = state.write().await;
+                let cx = x.div_euclid(CHUNK_SIZE as i32);
+                let cz = z.div_euclid(CHUNK_SIZE as i32);
+                let lx = x.rem_euclid(CHUNK_SIZE as i32);
+                let ly = y;
+                let lz = z.rem_euclid(CHUNK_SIZE as i32);
+                if let Some(chunk) = state.world.get_mut(&(cx, cz)) {
+                    chunk.set_block(lx, ly, lz, block_id);
+                }
+            }
+            let state = state.read().await;
+            let _ = state
+                .tx
+                .send(ServerEvent::BlockUpdate { x, y, z, block_id });
+        }
     }
 }
 

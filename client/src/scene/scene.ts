@@ -3,6 +3,8 @@ import { CONFIG } from "../config";
 
 export function createScene() {
   const canvas = document.querySelector("#c") as HTMLCanvasElement;
+  canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+
   const renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
 
   const scene = new THREE.Scene();

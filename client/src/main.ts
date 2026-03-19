@@ -7,7 +7,6 @@ import { Player } from "./player/player";
 import { addLights } from "./scene/lights";
 import { createScene } from "./scene/scene";
 import "./style.css";
-import { meshChunk } from "./world/chunkMesher";
 import { worldToChunk, worldToLocal } from "./world/coordinates";
 import { World } from "./world/world";
 

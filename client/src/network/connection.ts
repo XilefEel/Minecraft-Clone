@@ -11,11 +11,12 @@ export type ServerEvent =
   | { type: "PlayerJoined"; id: string }
   | { type: "PlayerLeft"; id: string }
   | { type: "PlayerPosition"; id: string; x: number; y: number; z: number }
-  | { type: "BlockUpdate"; x: number; y: number; z: number; block: number };
+  | { type: "BlockUpdate"; x: number; y: number; z: number; block_id: number };
 
 export type ClientEvent =
   | { type: "Move"; x: number; y: number; z: number }
-  | { type: "BlockBreak"; x: number; y: number; z: number };
+  | { type: "BlockBreak"; x: number; y: number; z: number }
+  | { type: "BlockPlace"; x: number; y: number; z: number; block_id: number };
 
 export class Connection {
   private ws: WebSocket;
@@ -91,7 +92,7 @@ export class Connection {
 
       // if a block is updated
       case "BlockUpdate":
-        world.setBlock(event.x, event.y, event.z, event.block);
+        world.setBlock(event.x, event.y, event.z, event.block_id);
         world.remeshWithWorldPos(event.x, event.z, scene);
         break;
     }

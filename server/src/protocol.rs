@@ -31,6 +31,20 @@ pub enum ServerEvent {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "type")]
 pub enum ClientEvent {
-    Move { x: f64, y: f64, z: f64 },
-    BlockBreak { x: i32, y: i32, z: i32 },
+    Move {
+        x: f64,
+        y: f64,
+        z: f64,
+    },
+    BlockBreak {
+        x: i32,
+        y: i32,
+        z: i32,
+    },
+    BlockPlace {
+        x: i32,
+        y: i32,
+        z: i32,
+        block_id: u8,
+    },
 }
