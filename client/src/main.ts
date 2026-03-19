@@ -6,7 +6,8 @@ import { addRaycast, initPointerLock } from "./player/controls";
 import { addGUI } from "./scene/gui";
 import "./style.css";
 import { initMovement } from "./player/movement";
-import { decode } from "@msgpack/msgpack";
+import { CONFIG } from "./config";
+import { Player } from "./player/player";
 
 function main() {
   // setup
@@ -14,9 +15,16 @@ function main() {
 
   const world = createWorld(scene);
   const { ambient, sun } = addLights(scene);
-  const movementControls = initMovement(world, camera);
 
-  initPointerLock(canvas, camera);
+  const player = new Player(
+    CONFIG.camera.initialPos.x,
+    CONFIG.camera.initialPos.y,
+    CONFIG.camera.initialPos.z,
+  );
+
+  const movementControls = initMovement(world, player);
+
+  initPointerLock(canvas, player);
   addRaycast(world, scene, camera);
 
   addGUI(ambient, sun, camera, scene);
@@ -40,25 +48,19 @@ function main() {
       camera.updateProjectionMatrix();
     }
 
+    movementControls();
+
+    const camPos = player.getCameraPosition();
+    camera.position.copy(camPos);
+    camera.rotation.order = "YXZ";
+    camera.rotation.y = player.yaw;
+    camera.rotation.x = player.pitch;
+
     renderer.render(scene, camera);
     requestAnimationFrame(render);
-    movementControls();
   }
 
   requestAnimationFrame(render);
-
-  const ws = new WebSocket("ws://localhost:3000/ws");
-  ws.binaryType = "arraybuffer";
-  ws.onmessage = async (e) => {
-    const msg = decode(new Uint8Array(e.data)) as [
-      string,
-      number,
-      number,
-      number,
-    ];
-    console.log("decoded:", msg);
-  };
-  ws.onopen = () => console.log("connected!");
 }
 
 main();

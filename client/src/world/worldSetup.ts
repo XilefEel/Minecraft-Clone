@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import { Chunk } from "./chunk";
 import { meshChunk } from "./chunkMesher";
 import { World } from "./world";
 import { initConnection } from "../network/connection";

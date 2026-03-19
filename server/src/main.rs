@@ -35,8 +35,8 @@ async fn ws_handler(ws: WebSocketUpgrade) -> impl IntoResponse {
 async fn handle_socket(mut socket: WebSocket) {
     println!("Client connected!");
 
-    for cx in 0..WORLD_SIZE {
-        for cz in 0..WORLD_SIZE {
+    for cx in -WORLD_SIZE..WORLD_SIZE {
+        for cz in -WORLD_SIZE..WORLD_SIZE {
             let mut chunk = Chunk::new();
             chunk.fill_noise(cx, cz);
 

@@ -48,16 +48,20 @@ impl Chunk {
 
         for x in 0..CHUNK_SIZE {
             for z in 0..CHUNK_SIZE {
-                let world_x = cx * CHUNK_SIZE + x;
-                let world_z = cz * CHUNK_SIZE + z;
+                let world_x = (cx * CHUNK_SIZE + x) as f64;
+                let world_z = (cz * CHUNK_SIZE + z) as f64;
 
-                let n = perlin.get([world_x as f64 / 50.0, world_z as f64 / 50.0]);
-                let height = (n * 8.0 + 12.0) as i32; // heights between 4 and 20
+                let n1 = perlin.get([world_x / 100.0, world_z / 100.0]);
+                let n2 = perlin.get([world_x / 30.0, world_z / 30.0]);
+                let n3 = perlin.get([world_x / 10.0, world_z / 10.0]);
+
+                let n = n1 * 0.6 + n2 * 0.3 + n3 * 0.1;
+                let height = (n * 8.0 + 20.0) as i32;
 
                 for y in 0..CHUNK_HEIGHT {
                     let block = if y == 0 {
                         4 // bedrock
-                    } else if y < height.saturating_sub(3) {
+                    } else if y < height.saturating_sub(4) {
                         2 // stone
                     } else if y < height {
                         3 // dirt
@@ -66,6 +70,7 @@ impl Chunk {
                     } else {
                         0 // air
                     };
+
                     self.set_block(x, y, z, block);
                 }
             }

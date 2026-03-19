@@ -1,13 +1,8 @@
 import * as THREE from "three";
 import type { World } from "../world/world";
+import type { Player } from "./player";
 
-export function initPointerLock(
-  canvas: HTMLCanvasElement,
-  camera: THREE.Camera,
-) {
-  let yaw = 0;
-  let pitch = 0;
-
+export function initPointerLock(canvas: HTMLCanvasElement, player: Player) {
   canvas.addEventListener("click", () => {
     canvas.requestPointerLock();
   });
@@ -16,14 +11,9 @@ export function initPointerLock(
     if (document.pointerLockElement !== canvas) return;
 
     const sensitivity = 0.0025;
-    yaw -= e.movementX * sensitivity;
-    pitch -= e.movementY * sensitivity;
-
-    pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
-
-    camera.rotation.order = "YXZ";
-    camera.rotation.y = yaw;
-    camera.rotation.x = pitch;
+    player.yaw -= e.movementX * sensitivity;
+    player.pitch -= e.movementY * sensitivity;
+    player.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, player.pitch));
   });
 }
 
@@ -49,8 +39,6 @@ export function addRaycast(
       const blockX = Math.floor(point.x - normal.x * 0.5);
       const blockY = Math.floor(point.y - normal.y * 0.5);
       const blockZ = Math.floor(point.z - normal.z * 0.5);
-
-      console.log(`Block coordinates: (${blockX}, ${blockY}, ${blockZ})`);
 
       const chunk = world.setBlock(blockX, blockY, blockZ, 0);
       if (!chunk) return;

@@ -68,8 +68,8 @@ export function meshChunk(chunk: Chunk): THREE.Mesh {
     for (let y = 0; y < CHUNK_HEIGHT; y++) {
       for (let z = 0; z < CHUNK_SIZE; z++) {
         const block = chunk.getBlock(x, y, z);
-        // air
-        if (block === 0) continue;
+
+        if (block === 0) continue; // air
 
         const color = new THREE.Color(BLOCK_COLORS[block] ?? 0xff00ff);
 

@@ -9,8 +9,8 @@ export const CONFIG = {
     fov: 60,
     near: 0.1,
     far: 500,
-    initialPos: { x: 8, y: 20, z: 30 },
-    lookAt: { x: 8, y: 4, z: 8 },
+    initialPos: { x: 0, y: 40, z: 0 },
+    lookAt: { x: 0, y: 4, z: 0 },
   },
   lights: {
     ambientColor: 0xffffff,
