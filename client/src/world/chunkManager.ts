@@ -7,7 +7,7 @@ export class ChunkManager {
   private scene: THREE.Scene;
 
   private requestedChunks = new Set<string>();
-  private renderDistance = 4;
+  private renderDistance = 8;
 
   constructor(world: World, scene: THREE.Scene) {
     this.world = world;
@@ -50,7 +50,11 @@ export class ChunkManager {
 
     for (const { x, z } of toUnload) {
       const key = this.world.getKey(x, z);
-      this.world.meshMap.get(key)?.geometry.dispose();
+      const mesh = this.world.meshMap.get(key);
+      if (mesh) {
+        this.scene.remove(mesh);
+        mesh.geometry.dispose();
+      }
       this.world.meshMap.delete(key);
       this.world.chunkMap.delete(key);
       this.requestedChunks.delete(this.getKey(x, z));

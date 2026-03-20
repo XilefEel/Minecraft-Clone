@@ -74,7 +74,7 @@ async fn stream_chunks(
     spawn_cz: i32,
     render_distance: i32,
 ) -> Result<(), ()> {
-    let chunks: Vec<_> = {
+    let mut chunks: Vec<_> = {
         let state = state.read().await;
         state
             .world
@@ -87,6 +87,12 @@ async fn stream_chunks(
             .map(|((cx, cz), chunk)| (*cx, *cz, chunk.blocks.clone()))
             .collect()
     };
+
+    chunks.sort_by_key(|(cx, cz, _)| {
+        let dx = cx - spawn_cx;
+        let dz = cz - spawn_cz;
+        dx.abs() + dz.abs()
+    });
 
     for (cx, cz, blocks) in chunks {
         send_event(
@@ -133,11 +139,11 @@ async fn process_client_event(
         ClientEvent::BlockBreak { x, y, z } => {
             {
                 let mut state = state.write().await;
-                let cx = x.div_euclid(CHUNK_SIZE as i32);
-                let cz = z.div_euclid(CHUNK_SIZE as i32);
-                let lx = x.rem_euclid(CHUNK_SIZE as i32);
+                let cx = x.div_euclid(CHUNK_SIZE);
+                let cz = z.div_euclid(CHUNK_SIZE);
+                let lx = x.rem_euclid(CHUNK_SIZE);
                 let ly = y;
-                let lz = z.rem_euclid(CHUNK_SIZE as i32);
+                let lz = z.rem_euclid(CHUNK_SIZE);
                 if let Some(chunk) = state.world.get_mut(&(cx, cz)) {
                     chunk.set_block(lx, ly, lz, 0);
                 }
@@ -157,11 +163,11 @@ async fn process_client_event(
         ClientEvent::BlockPlace { x, y, z, block_id } => {
             {
                 let mut state = state.write().await;
-                let cx = x.div_euclid(CHUNK_SIZE as i32);
-                let cz = z.div_euclid(CHUNK_SIZE as i32);
-                let lx = x.rem_euclid(CHUNK_SIZE as i32);
+                let cx = x.div_euclid(CHUNK_SIZE);
+                let cz = z.div_euclid(CHUNK_SIZE);
+                let lx = x.rem_euclid(CHUNK_SIZE);
                 let ly = y;
-                let lz = z.rem_euclid(CHUNK_SIZE as i32);
+                let lz = z.rem_euclid(CHUNK_SIZE);
                 if let Some(chunk) = state.world.get_mut(&(cx, cz)) {
                     chunk.set_block(lx, ly, lz, block_id);
                 }
@@ -248,7 +254,7 @@ pub async fn handle_socket(mut socket: WebSocket, state: SharedState) {
 
     let mut rx = state.read().await.tx.subscribe();
 
-    let _ = stream_chunks(&mut socket, &state, 0, 0, 4).await;
+    let _ = stream_chunks(&mut socket, &state, 0, 0, 8).await;
 
     register_player(&state, &id).await;
     notify_player_joined(&state, &id).await;

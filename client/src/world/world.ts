@@ -57,7 +57,8 @@ export class World {
   }
 
   isSolid(x: number, y: number, z: number): boolean {
-    return this.getBlock(x, y, z) !== 0;
+    const block = this.getBlock(x, y, z);
+    return block !== 0 && block !== 5; // 0 = air, 5 = water
   }
 
   setBlock(x: number, y: number, z: number, type: number) {

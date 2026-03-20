@@ -5,7 +5,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio::sync::broadcast;
 
-const WORLD_SIZE: i32 = 4;
+const SPAWN_CHUNKS: i32 = 8;
 
 pub struct PlayerState {
     pub x: f64,
@@ -24,8 +24,8 @@ impl GameState {
     pub fn new() -> (Arc<RwLock<Self>>, broadcast::Sender<ServerEvent>) {
         let (tx, _) = broadcast::channel(100);
         let mut world = HashMap::new();
-        for cx in -WORLD_SIZE..=WORLD_SIZE {
-            for cz in -WORLD_SIZE..=WORLD_SIZE {
+        for cx in -SPAWN_CHUNKS..=SPAWN_CHUNKS {
+            for cz in -SPAWN_CHUNKS..=SPAWN_CHUNKS {
                 let mut chunk = Chunk::new();
                 chunk.fill_noise(cx, cz);
                 world.insert((cx, cz), chunk);
