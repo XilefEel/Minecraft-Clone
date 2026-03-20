@@ -9,15 +9,12 @@ export class ChunkManager {
   private requestedChunks = new Set<string>();
   private renderDistance = 4;
 
-  private chunkCache = new Map<string, { lastSeen: number }>();
-  private maxCachedChunks = 500;
-
   constructor(world: World, scene: THREE.Scene) {
     this.world = world;
     this.scene = scene;
   }
 
-  private key(cx: number, cz: number): string {
+  private getKey(cx: number, cz: number): string {
     return `${cx},${cz}`;
   }
 
@@ -29,15 +26,12 @@ export class ChunkManager {
     const cx = Math.floor(playerX / CHUNK_SIZE);
     const cz = Math.floor(playerZ / CHUNK_SIZE);
 
-    const toUnload: { x: number; z: number }[] = [];
-
     // load new chunks
     for (let dx = -this.renderDistance; dx <= this.renderDistance; dx++) {
       for (let dz = -this.renderDistance; dz <= this.renderDistance; dz++) {
         const ncx = cx + dx;
         const ncz = cz + dz;
-        const key = this.key(ncx, ncz);
-
+        const key = this.getKey(ncx, ncz);
         if (!this.requestedChunks.has(key)) {
           this.requestedChunks.add(key);
           requestChunk(ncx, ncz);
@@ -46,6 +40,7 @@ export class ChunkManager {
     }
 
     // unload distant chunks
+    const toUnload: { x: number; z: number }[] = [];
     for (const chunk of this.world.chunkMap.values()) {
       const dist = Math.max(Math.abs(chunk.x - cx), Math.abs(chunk.z - cz));
       if (dist > this.renderDistance + 1) {
@@ -55,32 +50,10 @@ export class ChunkManager {
 
     for (const { x, z } of toUnload) {
       const key = this.world.getKey(x, z);
-      const mesh = this.world.meshMap.get(key);
-      if (mesh) {
-        this.scene.remove(mesh);
-      }
-      this.chunkCache.set(this.key(x, z), { lastSeen: Date.now() });
-    }
-
-    // clean up old cached chunks
-    if (this.chunkCache.size > this.maxCachedChunks) {
-      const sorted = [...this.chunkCache.entries()].sort(
-        (a, b) => a[1].lastSeen - b[1].lastSeen,
-      );
-
-      const toBeRemoved = sorted.slice(
-        0,
-        this.chunkCache.size - this.maxCachedChunks,
-      );
-
-      for (const [key] of toBeRemoved) {
-        const [cx, cz] = key.split(",").map(Number);
-        const worldKey = this.world.getKey(cx, cz);
-        this.world.meshMap.get(worldKey)?.geometry.dispose();
-        this.world.meshMap.delete(worldKey);
-        this.world.chunkMap.delete(worldKey);
-        this.chunkCache.delete(key);
-      }
+      this.world.meshMap.get(key)?.geometry.dispose();
+      this.world.meshMap.delete(key);
+      this.world.chunkMap.delete(key);
+      this.requestedChunks.delete(this.getKey(x, z));
     }
   }
 }

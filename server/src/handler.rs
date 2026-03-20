@@ -67,6 +67,41 @@ async fn disconnect_player(state: &SharedState, id: &str) {
         .send(ServerEvent::PlayerLeft { id: id.to_string() });
 }
 
+async fn stream_chunks(
+    socket: &mut WebSocket,
+    state: &SharedState,
+    spawn_cx: i32,
+    spawn_cz: i32,
+    render_distance: i32,
+) -> Result<(), ()> {
+    let chunks: Vec<_> = {
+        let state = state.read().await;
+        state
+            .world
+            .iter()
+            .filter(|((cx, cz), _)| {
+                let dx = cx - spawn_cx;
+                let dz = cz - spawn_cz;
+                dx.abs() <= render_distance && dz.abs() <= render_distance
+            })
+            .map(|((cx, cz), chunk)| (*cx, *cz, chunk.blocks.clone()))
+            .collect()
+    };
+
+    for (cx, cz, blocks) in chunks {
+        send_event(
+            socket,
+            ServerEvent::ChunkData {
+                cx,
+                cz,
+                blocks: blocks.to_vec(),
+            },
+        )
+        .await?;
+    }
+    Ok(())
+}
+
 async fn process_client_event(
     msg: ClientEvent,
     state: &SharedState,
@@ -139,22 +174,24 @@ async fn process_client_event(
         }
 
         ClientEvent::RequestChunk { cx, cz } => {
-            let blocks = {
-                let has_chunk = state.read().await.world.contains_key(&(cx, cz));
-                if !has_chunk {
-                    // generate on a thread pool, don't block the async runtime
-                    let blocks = tokio::task::spawn_blocking(move || {
-                        let mut chunk = Chunk::new();
-                        chunk.fill_noise(cx, cz);
-                        chunk.blocks
-                    })
-                    .await
-                    .unwrap();
+            if !state.read().await.world.contains_key(&(cx, cz)) {
+                let blocks = tokio::task::spawn_blocking(move || {
+                    let mut chunk = Chunk::new();
+                    chunk.fill_noise(cx, cz);
+                    chunk.blocks
+                })
+                .await
+                .unwrap();
 
-                    state.write().await.world.insert((cx, cz), Chunk { blocks });
-                }
-                state.read().await.world[&(cx, cz)].blocks.clone()
-            };
+                state
+                    .write()
+                    .await
+                    .world
+                    .entry((cx, cz))
+                    .or_insert(Chunk { blocks });
+            }
+
+            let blocks = state.read().await.world[&(cx, cz)].blocks.clone();
             Some(ServerEvent::ChunkData {
                 cx,
                 cz,
@@ -181,67 +218,29 @@ async fn event_loop(
     loop {
         tokio::select! {
             incoming = socket.recv() => {
-                match incoming {
-                    Some(Ok(Message::Binary(data))) => {
-                        if let Ok(event) = from_slice::<ClientEvent>(&data) {
-                            if let Some(response) = process_client_event(event, state, id).await {
-                                if send_event(socket, response).await.is_err() {
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    _ => break,
+                let Some(Ok(Message::Binary(data))) = incoming else { break };
+                let Ok(event) = from_slice::<ClientEvent>(&data) else { continue };
+
+                if let Some(response) = process_client_event(event, state, id).await {
+                    if send_event(socket, response).await.is_err() { break }
                 }
             }
 
-            broadcast = rx.recv() => {
-                if let Ok(server_msg) = broadcast {
-                    if !is_own_event(&server_msg, id) {
-                        let bytes = rmp_serde::to_vec_named(&server_msg).unwrap();
-                        if socket.send(Message::Binary(bytes.into())).await.is_err() {
-                            break;
-                        }
-                    }
+            broadcast = rx.recv() => match broadcast {
+                Ok(msg) if !is_own_event(&msg, id) => {
+                    let bytes = rmp_serde::to_vec_named(&msg).unwrap();
+                    if socket.send(Message::Binary(bytes.into())).await.is_err() { break }
                 }
+
+                Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
+                    eprintln!("Player {} lagged, dropped {} messages", id, n);
+                }
+
+                Err(_) => break,
+                _ => {}
             }
         }
     }
-}
-
-async fn stream_chunks(
-    socket: &mut WebSocket,
-    state: &SharedState,
-    spawn_cx: i32,
-    spawn_cz: i32,
-    render_distance: i32,
-) -> Result<(), ()> {
-    let chunks: Vec<_> = {
-        let state = state.read().await;
-        state
-            .world
-            .iter()
-            .filter(|((cx, cz), _)| {
-                let dx = cx - spawn_cx;
-                let dz = cz - spawn_cz;
-                dx.abs() <= render_distance && dz.abs() <= render_distance
-            })
-            .map(|((cx, cz), chunk)| (*cx, *cz, chunk.blocks.clone()))
-            .collect()
-    };
-
-    for (cx, cz, blocks) in chunks {
-        send_event(
-            socket,
-            ServerEvent::ChunkData {
-                cx,
-                cz,
-                blocks: blocks.to_vec(),
-            },
-        )
-        .await?;
-    }
-    Ok(())
 }
 
 pub async fn handle_socket(mut socket: WebSocket, state: SharedState) {
