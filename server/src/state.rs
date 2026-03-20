@@ -5,7 +5,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio::sync::broadcast;
 
-const WORLD_SIZE: i32 = 10;
+const WORLD_SIZE: i32 = 4;
 
 pub struct PlayerState {
     pub x: f64,

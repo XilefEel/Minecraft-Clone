@@ -24,7 +24,8 @@ export type ServerEvent =
 export type ClientEvent =
   | { type: "Move"; x: number; y: number; z: number; yaw: number }
   | { type: "BlockBreak"; x: number; y: number; z: number }
-  | { type: "BlockPlace"; x: number; y: number; z: number; block_id: number };
+  | { type: "BlockPlace"; x: number; y: number; z: number; block_id: number }
+  | { type: "RequestChunk"; cx: number; cz: number };
 
 export class Connection {
   private ws: WebSocket;
@@ -90,10 +91,6 @@ export class Connection {
 
         scene.add(mesh);
 
-        this.chunksReceived++;
-        if (this.chunksReceived >= this.totalChunks) {
-          this.hideLoadingScreen();
-        }
         break;
 
       // if a new player joined

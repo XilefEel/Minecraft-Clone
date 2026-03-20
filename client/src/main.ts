@@ -10,16 +10,21 @@ import "./style.css";
 import { worldToChunk, worldToLocal } from "./world/coordinates";
 import { World } from "./world/world";
 import { createHotbar } from "./ui/hotbar";
+import { ChunkManager } from "./world/chunkManager";
+import { addGUI } from "./ui/gui";
 
 const worldCoords = document.getElementById("worldCoords")!;
 const chunkCoords = document.getElementById("chunkCoords")!;
 const localCoords = document.getElementById("localCoords")!;
+
+let lastChunkUpdate = 0;
 
 function main() {
   // setup
   const { canvas, renderer, scene, camera, labelRenderer } = createScene();
 
   const world = new World();
+  const chunkManager = new ChunkManager(world, scene);
   const player = new Player(
     CONFIG.camera.initialPos.x,
     CONFIG.camera.initialPos.y,
@@ -33,8 +38,8 @@ function main() {
 
   initPointerLock(canvas, player);
   initRaycast(connection, scene, camera);
-  addLights(scene);
-  // addGUI(ambient, sun, camera, scene);
+  const { sun, ambient } = addLights(scene);
+  addGUI(ambient, sun, camera, scene);
 
   // important
   function resizeDisplay(renderer: THREE.WebGLRenderer) {
@@ -57,6 +62,14 @@ function main() {
       camera.aspect =
         renderer.domElement.clientWidth / renderer.domElement.clientHeight;
       camera.updateProjectionMatrix();
+    }
+
+    const now = Date.now();
+    if (now - lastChunkUpdate > 1000) {
+      chunkManager.update(player.position.x, player.position.z, (cx, cz) => {
+        connection.sendEvent({ type: "RequestChunk", cx, cz });
+      });
+      lastChunkUpdate = now;
     }
 
     movementControls();

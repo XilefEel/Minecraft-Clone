@@ -49,4 +49,8 @@ pub enum ClientEvent {
         z: i32,
         block_id: u8,
     },
+    RequestChunk {
+        cx: i32,
+        cz: i32,
+    },
 }
