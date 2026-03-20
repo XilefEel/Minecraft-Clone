@@ -11,6 +11,7 @@ pub struct PlayerState {
     pub x: f64,
     pub y: f64,
     pub z: f64,
+    pub yaw: f64,
 }
 
 pub struct GameState {

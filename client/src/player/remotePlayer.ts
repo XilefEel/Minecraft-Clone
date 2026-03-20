@@ -1,20 +1,37 @@
 import * as THREE from "three";
 import { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 
+const materials = [
+  new THREE.MeshLambertMaterial({ color: 0xcc0000 }),
+  new THREE.MeshLambertMaterial({ color: 0xcc0000 }),
+  new THREE.MeshLambertMaterial({ color: 0xcc0000 }),
+  new THREE.MeshLambertMaterial({ color: 0xcc0000 }),
+  new THREE.MeshLambertMaterial({ color: 0xcc0000 }),
+  new THREE.MeshLambertMaterial({ color: 0x0000dd }),
+];
+
+function lerpAngle(current: number, target: number, t: number): number {
+  let diff = target - current;
+  while (diff > Math.PI) diff -= Math.PI * 2;
+  while (diff < -Math.PI) diff += Math.PI * 2;
+  return current + diff * t;
+}
+
 export class RemotePlayer {
   id: string;
   mesh: THREE.Mesh;
   private nameTag: CSS2DObject;
   private targetPosition = new THREE.Vector3();
+  private targetYaw = 0;
+  private currentYaw = 0;
 
   readonly height = 1.8;
   readonly width = 0.6;
 
   constructor(id: string, scene: THREE.Scene) {
     this.id = id;
-    const geometry = new THREE.BoxGeometry(0.6, 1.8, 0.6);
-    const material = new THREE.MeshLambertMaterial({ color: 0xff0000 });
-    this.mesh = new THREE.Mesh(geometry, material);
+    const size = new THREE.BoxGeometry(0.6, 1.8, 0.6);
+    this.mesh = new THREE.Mesh(size, materials);
 
     const div = document.createElement("div");
     div.textContent = id.slice(0, 8);
@@ -35,12 +52,15 @@ export class RemotePlayer {
     scene.add(this.mesh);
   }
 
-  updatePosition(x: number, y: number, z: number) {
+  onServerUpdate(x: number, y: number, z: number, yaw: number) {
     this.targetPosition.set(x, y + 0.9, z);
+    this.targetYaw = yaw;
   }
 
-  updateRenderedPosition() {
+  tick() {
     this.mesh.position.lerp(this.targetPosition, 0.2);
+    this.currentYaw = lerpAngle(this.currentYaw, this.targetYaw, 0.2);
+    this.mesh.rotation.y = this.currentYaw;
   }
 
   remove(scene: THREE.Scene) {

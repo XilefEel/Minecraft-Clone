@@ -19,6 +19,7 @@ pub enum ServerEvent {
         x: f64,
         y: f64,
         z: f64,
+        yaw: f64,
     },
     BlockUpdate {
         x: i32,
@@ -35,6 +36,7 @@ pub enum ClientEvent {
         x: f64,
         y: f64,
         z: f64,
+        yaw: f64,
     },
     BlockBreak {
         x: i32,

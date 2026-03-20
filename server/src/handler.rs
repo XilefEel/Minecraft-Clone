@@ -16,6 +16,7 @@ async fn register_player(state: &SharedState, id: &str) {
             x: 0.0,
             y: 0.0,
             z: 0.0,
+            yaw: 0.0,
         },
     );
 }
@@ -40,6 +41,7 @@ async fn sync_existing_players(socket: &mut WebSocket, state: &SharedState, id: 
             x: player.x,
             y: player.y,
             z: player.z,
+            yaw: player.yaw,
         };
         let bytes = rmp_serde::to_vec_named(&msg).unwrap();
         let _ = socket.send(Message::Binary(bytes.into())).await;
@@ -76,13 +78,14 @@ async fn disconnect_player(state: &SharedState, id: &str) {
 async fn process_client_message(msg: ClientEvent, state: &SharedState, id: &str) {
     match msg {
         // when a player moves
-        ClientEvent::Move { x, y, z } => {
+        ClientEvent::Move { x, y, z, yaw } => {
             {
                 let mut state = state.write().await;
                 if let Some(player) = state.players.get_mut(id) {
                     player.x = x;
                     player.y = y;
                     player.z = z;
+                    player.yaw = yaw;
                 }
             }
             let state = state.read().await;
@@ -91,6 +94,7 @@ async fn process_client_message(msg: ClientEvent, state: &SharedState, id: &str)
                 x,
                 y,
                 z,
+                yaw,
             });
         }
         // when a player breaks a block

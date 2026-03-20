@@ -11,18 +11,28 @@ export type ServerEvent =
   | { type: "ChunkData"; cx: number; cz: number; blocks: number[] }
   | { type: "PlayerJoined"; id: string }
   | { type: "PlayerLeft"; id: string }
-  | { type: "PlayerPosition"; id: string; x: number; y: number; z: number }
+  | {
+      type: "PlayerPosition";
+      id: string;
+      x: number;
+      y: number;
+      z: number;
+      yaw: number;
+    }
   | { type: "BlockUpdate"; x: number; y: number; z: number; block_id: number };
 
 export type ClientEvent =
-  | { type: "Move"; x: number; y: number; z: number }
+  | { type: "Move"; x: number; y: number; z: number; yaw: number }
   | { type: "BlockBreak"; x: number; y: number; z: number }
   | { type: "BlockPlace"; x: number; y: number; z: number; block_id: number };
 
 export class Connection {
   private ws: WebSocket;
   private remotePlayersMap = new Map<string, RemotePlayer>();
+
   private lastSentPosition = new THREE.Vector3();
+  private lastSentYaw = 0;
+
   private chunksReceived = 0;
   private totalChunks = 400;
 
@@ -49,14 +59,21 @@ export class Connection {
   }
 
   private sendPosition(player: Player) {
-    if (player.position.distanceTo(this.lastSentPosition) < 0.01) return;
+    const positionChanged =
+      player.position.distanceTo(this.lastSentPosition) > 0.01;
+    const yawChanged = Math.abs(player.yaw - this.lastSentYaw) > 0.01;
+
+    if (!positionChanged && !yawChanged) return;
 
     this.lastSentPosition.copy(player.position);
+    this.lastSentYaw = player.yaw;
+
     this.sendEvent({
       type: "Move",
       x: player.position.x,
       y: player.position.y,
       z: player.position.z,
+      yaw: player.yaw,
     });
   }
 
@@ -103,7 +120,7 @@ export class Connection {
 
         this.remotePlayersMap
           .get(event.id)
-          ?.updatePosition(event.x, event.y, event.z);
+          ?.onServerUpdate(event.x, event.y, event.z, event.yaw);
 
         break;
 
@@ -116,7 +133,7 @@ export class Connection {
   }
 
   updateRemotePlayers() {
-    this.remotePlayersMap.forEach((p) => p.updateRenderedPosition());
+    this.remotePlayersMap.forEach((p) => p.tick());
   }
 
   sendEvent(event: ClientEvent) {
