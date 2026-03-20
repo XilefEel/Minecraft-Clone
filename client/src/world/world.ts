@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { Chunk, CHUNK_SIZE } from "./chunk";
-import { meshChunk } from "./chunkMesher";
+import { meshChunkGreedy } from "./greedyMesher";
 
 export class World {
   chunkMap: Map<number, Chunk> = new Map();
@@ -23,6 +23,7 @@ export class World {
     const cx = Math.floor(x / CHUNK_SIZE);
     const cz = Math.floor(z / CHUNK_SIZE);
     const chunk = this.chunkMap.get(this.getKey(cx, cz));
+
     if (chunk) this.remeshChunk(chunk, scene);
   }
 
@@ -33,7 +34,7 @@ export class World {
       scene.remove(oldMesh);
       oldMesh.geometry.dispose();
     }
-    const newMesh = meshChunk(chunk);
+    const newMesh = meshChunkGreedy(chunk);
     this.meshMap.set(key, newMesh);
     scene.add(newMesh);
   }

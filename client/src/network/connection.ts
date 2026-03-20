@@ -4,7 +4,7 @@ import type { Player } from "../player/player";
 import type { World } from "../world/world";
 import * as THREE from "three";
 import { RemotePlayer } from "../player/remotePlayer";
-import { meshChunk } from "../world/chunkMesher";
+import { meshChunkGreedy } from "../world/greedyMesher";
 import { notify } from "../ui/chat";
 
 export type ServerEvent =
@@ -60,7 +60,7 @@ export class Connection {
         chunk.blocks = new Uint8Array(event.blocks);
 
         world.addChunk(chunk);
-        const mesh = meshChunk(chunk);
+        const mesh = meshChunkGreedy(chunk);
         world.meshMap.set(world.getKey(chunk.x, chunk.z), mesh);
         scene.add(mesh);
         break;
