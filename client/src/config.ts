@@ -20,9 +20,9 @@ export const CONFIG = {
     sunPos: { x: 50, y: 100, z: 50 },
   },
   player: {
-    speed: 0.1,
-    gravity: -0.005,
-    jumpStrength: 0.15,
+    speed: 0.07,
+    gravity: -0.008,
+    jumpStrength: 0.14,
     height: 1.8,
   },
 };

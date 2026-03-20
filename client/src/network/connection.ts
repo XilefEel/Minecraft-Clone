@@ -5,6 +5,7 @@ import type { World } from "../world/world";
 import * as THREE from "three";
 import { RemotePlayer } from "../player/remotePlayer";
 import { meshChunk } from "../world/chunkMesher";
+import { notify } from "../ui/chat";
 
 export type ServerEvent =
   | { type: "ChunkData"; cx: number; cz: number; blocks: number[] }
@@ -67,12 +68,14 @@ export class Connection {
       // if a new player joined
       case "PlayerJoined":
         this.remotePlayersMap.set(event.id, new RemotePlayer(event.id, scene));
+        notify(`${event.id.slice(0, 8)} joined the game`);
         break;
 
       // if a player left
       case "PlayerLeft":
         this.remotePlayersMap.get(event.id)?.remove(scene);
         this.remotePlayersMap.delete(event.id);
+        notify(`${event.id.slice(0, 8)} left the game`);
         break;
 
       // if a player position changes
