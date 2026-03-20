@@ -9,6 +9,7 @@ import { createScene } from "./scene/scene";
 import "./style.css";
 import { worldToChunk, worldToLocal } from "./world/coordinates";
 import { World } from "./world/world";
+import { createHotbar } from "./ui/hotbar";
 
 const worldCoords = document.getElementById("worldCoords")!;
 const chunkCoords = document.getElementById("chunkCoords")!;
@@ -28,6 +29,7 @@ function main() {
   const connection = new Connection(player, world, scene);
 
   const movementControls = initMovement(world, player);
+  createHotbar();
 
   initPointerLock(canvas, player);
   initRaycast(connection, scene, camera);

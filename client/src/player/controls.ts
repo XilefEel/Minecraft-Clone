@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { Player } from "./player";
 import { Connection } from "../network/connection";
+import { getSelectedBlock } from "../ui/hotbar";
 
 export function initPointerLock(canvas: HTMLCanvasElement, player: Player) {
   canvas.addEventListener("click", () => {
@@ -59,7 +60,7 @@ export function initRaycast(
           x: blockX,
           y: blockY,
           z: blockZ,
-          block_id: 1,
+          block_id: getSelectedBlock(),
         });
       }
     }

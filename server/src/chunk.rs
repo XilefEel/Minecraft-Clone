@@ -24,7 +24,7 @@ impl Chunk {
     }
 
     pub fn fill_noise(&mut self, cx: i32, cz: i32) {
-        let perlin = Perlin::new(42); // seed
+        let perlin = Perlin::new(67); // seed
 
         for x in 0..CHUNK_SIZE {
             for z in 0..CHUNK_SIZE {

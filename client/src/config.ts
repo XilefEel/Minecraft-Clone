@@ -3,7 +3,7 @@ export const CONFIG = {
     backgroundColor: 0x87ceeb,
     fogColor: 0xffffff,
     fogNear: 20,
-    fogFar: 60,
+    fogFar: 100,
   },
   camera: {
     fov: 60,

@@ -50,3 +50,17 @@ canvas {
     font-size: 16px;
     pointer-events: none;
 }
+
+#loading {
+    position: fixed;
+    inset: 0;
+    background: #1a1a1a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-family: monospace;
+    font-size: 24px;
+    z-index: 100;
+    transition: opacity 0.5s;
+}

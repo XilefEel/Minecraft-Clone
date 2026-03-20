@@ -23,6 +23,8 @@ export class Connection {
   private ws: WebSocket;
   private remotePlayersMap = new Map<string, RemotePlayer>();
   private lastSentPosition = new THREE.Vector3();
+  private chunksReceived = 0;
+  private totalChunks = 400;
 
   constructor(player: Player, world: World, scene: THREE.Scene) {
     this.ws = new WebSocket("ws://localhost:3000/ws");
@@ -38,6 +40,12 @@ export class Connection {
 
     // send player position to server
     setInterval(() => this.sendPosition(player), 50);
+  }
+
+  private hideLoadingScreen() {
+    const el = document.getElementById("loading")!;
+    el.style.opacity = "0";
+    setTimeout(() => el.remove(), 500);
   }
 
   private sendPosition(player: Player) {
@@ -62,7 +70,13 @@ export class Connection {
         world.addChunk(chunk);
         const mesh = meshChunkGreedy(chunk);
         world.meshMap.set(world.getKey(chunk.x, chunk.z), mesh);
+
         scene.add(mesh);
+
+        this.chunksReceived++;
+        if (this.chunksReceived >= this.totalChunks) {
+          this.hideLoadingScreen();
+        }
         break;
 
       // if a new player joined
