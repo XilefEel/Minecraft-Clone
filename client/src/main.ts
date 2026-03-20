@@ -16,7 +16,7 @@ const localCoords = document.getElementById("localCoords")!;
 
 function main() {
   // setup
-  const { canvas, renderer, scene, camera } = createScene();
+  const { canvas, renderer, scene, camera, labelRenderer } = createScene();
 
   const world = new World();
   const player = new Player(
@@ -41,7 +41,11 @@ function main() {
     const height = canvas.clientHeight;
 
     const needResize = canvas.width !== width || canvas.height !== height;
-    if (needResize) renderer.setSize(width, height, false);
+    if (needResize) {
+      renderer.setSize(width, height, false);
+      labelRenderer.setSize(width, height);
+    }
+
     return needResize;
   }
 
@@ -75,6 +79,7 @@ function main() {
     connection.updateRemotePlayers();
 
     renderer.render(scene, camera);
+    labelRenderer.render(scene, camera);
     requestAnimationFrame(render);
   }
 
