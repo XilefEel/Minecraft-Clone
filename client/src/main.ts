@@ -30,7 +30,7 @@ function main() {
   // setup
   const { canvas, renderer, scene, camera, labelRenderer } = createScene();
 
-  const world = new World();
+  const world = new World(scene);
   const chunkManager = new ChunkManager(world, scene);
   const player = new Player(
     CONFIG.camera.initialPos.x,
@@ -77,7 +77,7 @@ function main() {
       });
       lastChunkUpdate = now;
     }
-    updateDayNight(sun, ambient, scene, renderer);
+    // updateDayNight(sun, ambient, scene, renderer);
     movementControls();
 
     const camPos = player.getCameraPosition();

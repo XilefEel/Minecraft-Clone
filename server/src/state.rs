@@ -6,7 +6,7 @@ use std::time::Duration;
 use tokio::sync::RwLock;
 use tokio::sync::broadcast;
 
-const SPAWN_CHUNKS: i32 = 8;
+const SPAWN_CHUNKS: i32 = 16;
 
 pub struct PlayerState {
     pub x: f64,

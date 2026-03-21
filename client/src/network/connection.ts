@@ -4,7 +4,6 @@ import type { Player } from "../player/player";
 import type { World } from "../world/world";
 import * as THREE from "three";
 import { RemotePlayer } from "../player/remotePlayer";
-import { meshChunkGreedy } from "../world/greedyMesher";
 import { notify } from "../ui/chat";
 import { receiveServerTime } from "../scene/dayNight";
 
@@ -36,9 +35,6 @@ export class Connection {
   private lastSentPosition = new THREE.Vector3();
   private lastSentYaw = 0;
 
-  private chunksReceived = 0;
-  private totalChunks = 400;
-
   constructor(player: Player, world: World, scene: THREE.Scene) {
     this.ws = new WebSocket("ws://localhost:3000/ws");
     this.ws.binaryType = "arraybuffer";
@@ -53,12 +49,6 @@ export class Connection {
 
     // send player position to server
     setInterval(() => this.sendPosition(player), 50);
-  }
-
-  private hideLoadingScreen() {
-    const el = document.getElementById("loading")!;
-    el.style.opacity = "0";
-    setTimeout(() => el.remove(), 500);
   }
 
   private sendPosition(player: Player) {
@@ -86,7 +76,7 @@ export class Connection {
       case "ChunkData":
         const chunk = new Chunk(event.cx, event.cz);
         chunk.blocks = new Uint8Array(event.blocks);
-        world.addChunk(chunk, scene);
+        world.addChunk(chunk);
         break;
 
       // if a new player joined
@@ -120,7 +110,7 @@ export class Connection {
       // if a block is updated
       case "BlockUpdate":
         world.setBlock(event.x, event.y, event.z, event.block_id);
-        world.remeshWithWorldPos(event.x, event.z, scene);
+        world.remeshWithWorldPos(event.x, event.z);
         break;
 
       case "TimeUpdate":

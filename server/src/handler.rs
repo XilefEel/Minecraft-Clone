@@ -254,7 +254,7 @@ pub async fn handle_socket(mut socket: WebSocket, state: SharedState) {
 
     let mut rx = state.read().await.tx.subscribe();
 
-    let _ = stream_chunks(&mut socket, &state, 0, 0, 8).await;
+    let _ = stream_chunks(&mut socket, &state, 0, 0, 16).await;
 
     let time = state.read().await.get_world_time();
     let _ = send_event(&mut socket, ServerEvent::TimeUpdate { time }).await;
