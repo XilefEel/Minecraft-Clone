@@ -9,7 +9,7 @@ export const CONFIG = {
     fov: 60,
     near: 0.1,
     far: 500,
-    initialPos: { x: 0, y: 70, z: 0 },
+    initialPos: { x: 0, y: 100, z: 0 },
     lookAt: { x: 0, y: 4, z: 0 },
   },
   lights: {

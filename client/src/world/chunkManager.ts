@@ -7,7 +7,7 @@ export class ChunkManager {
   private scene: THREE.Scene;
 
   private requestedChunks = new Set<string>();
-  private renderDistance = 16;
+  private renderDistance = 8;
 
   constructor(world: World, scene: THREE.Scene) {
     this.world = world;
