@@ -14,9 +14,9 @@ export const CONFIG = {
   },
   lights: {
     ambientColor: 0xffffff,
-    ambientIntensity: 1.2,
+    ambientIntensity: 1,
     sunColor: 0xfffde0,
-    sunIntensity: 6,
+    sunIntensity: 4,
     sunPos: { x: 50, y: 100, z: 50 },
   },
   player: {

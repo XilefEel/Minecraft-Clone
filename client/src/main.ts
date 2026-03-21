@@ -12,6 +12,7 @@ import { World } from "./world/world";
 import { createHotbar } from "./ui/hotbar";
 import { ChunkManager } from "./world/chunkManager";
 import { addGUI } from "./ui/gui";
+import { updateDayNight } from "./scene/dayNight";
 
 const worldCoords = document.getElementById("worldCoords")!;
 const chunkCoords = document.getElementById("chunkCoords")!;
@@ -40,7 +41,6 @@ function main() {
   initRaycast(connection, scene, camera);
   const { sun, ambient } = addLights(scene);
   addGUI(ambient, sun, camera, scene);
-
   // important
   function resizeDisplay(renderer: THREE.WebGLRenderer) {
     const canvas = renderer.domElement;
@@ -71,7 +71,7 @@ function main() {
       });
       lastChunkUpdate = now;
     }
-
+    updateDayNight(sun, ambient, scene, renderer);
     movementControls();
 
     const camPos = player.getCameraPosition();

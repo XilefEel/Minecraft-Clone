@@ -22,11 +22,11 @@ export function createScene() {
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(CONFIG.scene.backgroundColor);
-  scene.fog = new THREE.Fog(
-    CONFIG.scene.fogColor,
-    CONFIG.scene.fogNear,
-    CONFIG.scene.fogFar,
-  );
+  // scene.fog = new THREE.Fog(
+  //   CONFIG.scene.fogColor,
+  //   CONFIG.scene.fogNear,
+  //   CONFIG.scene.fogFar,
+  // );
 
   const camera = new THREE.PerspectiveCamera(
     CONFIG.camera.fov,
