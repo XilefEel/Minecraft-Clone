@@ -28,19 +28,40 @@ export class World {
   }
 
   remeshChunk(chunk: Chunk, scene: THREE.Scene) {
+    const neighbors = {
+      px: this.chunkMap.get(this.getKey(chunk.x + 1, chunk.z)) ?? null,
+      nx: this.chunkMap.get(this.getKey(chunk.x - 1, chunk.z)) ?? null,
+      pz: this.chunkMap.get(this.getKey(chunk.x, chunk.z + 1)) ?? null,
+      nz: this.chunkMap.get(this.getKey(chunk.x, chunk.z - 1)) ?? null,
+    };
+
     const key = this.getKey(chunk.x, chunk.z);
     const oldMesh = this.meshMap.get(key);
     if (oldMesh) {
       scene.remove(oldMesh);
       oldMesh.geometry.dispose();
     }
-    const newMesh = meshChunkGreedy(chunk);
+
+    const newMesh = meshChunkGreedy(chunk, neighbors);
     this.meshMap.set(key, newMesh);
     scene.add(newMesh);
   }
 
-  addChunk(chunk: Chunk) {
+  addChunk(chunk: Chunk, scene: THREE.Scene) {
     this.chunkMap.set(this.getKey(chunk.x, chunk.z), chunk);
+    this.remeshChunk(chunk, scene);
+
+    for (const [dx, dz] of [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ] as const) {
+      const neighbor = this.chunkMap.get(
+        this.getKey(chunk.x + dx, chunk.z + dz),
+      );
+      if (neighbor) this.remeshChunk(neighbor, scene);
+    }
   }
 
   getBlock(x: number, y: number, z: number): number {

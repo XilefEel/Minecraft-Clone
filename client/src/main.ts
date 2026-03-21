@@ -46,7 +46,7 @@ function main() {
   initPointerLock(canvas, player);
   initRaycast(connection, scene, camera);
   const { sun, ambient } = addLights(scene);
-  // addGUI(ambient, sun, camera, scene);
+  addGUI(ambient, sun, camera, scene);
   // important
   function resizeDisplay(renderer: THREE.WebGLRenderer) {
     const canvas = renderer.domElement;

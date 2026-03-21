@@ -2,19 +2,47 @@ import * as THREE from "three";
 import { Chunk, CHUNK_SIZE, CHUNK_HEIGHT } from "./chunk";
 import { BLOCK_COLORS } from "./blocks";
 
-export function meshChunkGreedy(chunk: Chunk): THREE.Mesh {
+type Neighbors = {
+  px: Chunk | null;
+  nx: Chunk | null;
+  pz: Chunk | null;
+  nz: Chunk | null;
+};
+
+function getNeighborBlock(
+  chunk: Chunk,
+  neighbors: Neighbors,
+  x: number,
+  y: number,
+  z: number,
+): number {
+  if (y < 0 || y >= CHUNK_HEIGHT) return 0;
+
+  if (x < 0) return neighbors.nx?.getBlock(x + CHUNK_SIZE, y, z) ?? 0;
+  if (x >= CHUNK_SIZE) return neighbors.px?.getBlock(x - CHUNK_SIZE, y, z) ?? 0;
+
+  if (z < 0) return neighbors.nz?.getBlock(x, y, z + CHUNK_SIZE) ?? 0;
+  if (z >= CHUNK_SIZE) return neighbors.pz?.getBlock(x, y, z - CHUNK_SIZE) ?? 0;
+
+  return chunk.getBlock(x, y, z);
+}
+
+export function meshChunkGreedy(
+  chunk: Chunk,
+  neighbors: Neighbors,
+): THREE.Mesh {
   const positions: number[] = [];
   const colors: number[] = [];
   const indices: number[] = [];
 
-  greedyXAxis(chunk, positions, colors, indices, 1);
-  greedyXAxis(chunk, positions, colors, indices, -1);
+  greedyXAxis(chunk, neighbors, positions, colors, indices, 1);
+  greedyXAxis(chunk, neighbors, positions, colors, indices, -1);
 
-  greedyYAxis(chunk, positions, colors, indices, 1);
-  greedyYAxis(chunk, positions, colors, indices, -1);
+  greedyYAxis(chunk, neighbors, positions, colors, indices, 1);
+  greedyYAxis(chunk, neighbors, positions, colors, indices, -1);
 
-  greedyZAxis(chunk, positions, colors, indices, 1);
-  greedyZAxis(chunk, positions, colors, indices, -1);
+  greedyZAxis(chunk, neighbors, positions, colors, indices, 1);
+  greedyZAxis(chunk, neighbors, positions, colors, indices, -1);
 
   const geometry = new THREE.BufferGeometry();
   const positionAttribute = new THREE.Float32BufferAttribute(positions, 3);
@@ -24,12 +52,12 @@ export function meshChunkGreedy(chunk: Chunk): THREE.Mesh {
   geometry.setIndex(indices);
 
   const material = new THREE.MeshLambertMaterial({ vertexColors: true });
-
   return new THREE.Mesh(geometry, material);
 }
 
 function greedyYAxis(
   chunk: Chunk,
+  neighbors: Neighbors,
   positions: number[],
   colors: number[],
   indices: number[],
@@ -40,12 +68,16 @@ function greedyYAxis(
       null,
     );
 
-    // create mask (XZ plane)
     for (let x = 0; x < CHUNK_SIZE; x++) {
       for (let z = 0; z < CHUNK_SIZE; z++) {
         const block = chunk.getBlock(x, y, z);
-
-        const neighbor = chunk.getBlock(x, y + direction, z);
+        const neighbor = getNeighborBlock(
+          chunk,
+          neighbors,
+          x,
+          y + direction,
+          z,
+        );
         if (block !== 0 && neighbor === 0) {
           mask[x + z * CHUNK_SIZE] = block;
         }
@@ -117,40 +149,9 @@ function greedyYAxis(
   }
 }
 
-function addYFace(
-  positions: number[],
-  colors: number[],
-  indices: number[],
-  x: number,
-  y: number,
-  z: number,
-  width: number,
-  height: number,
-  block: number,
-  chunk: Chunk,
-  direction: 1 | -1,
-) {
-  const wx = chunk.x * CHUNK_SIZE + x;
-  const wz = chunk.z * CHUNK_SIZE + z;
-  const faceY = direction === 1 ? y + 1 : y;
-
-  addFaceShared(
-    positions,
-    colors,
-    indices,
-    [
-      [wx, faceY, wz],
-      [wx + width, faceY, wz],
-      [wx, faceY, wz + height],
-      [wx + width, faceY, wz + height],
-    ],
-    block,
-    direction,
-  );
-}
-
 function greedyXAxis(
   chunk: Chunk,
+  neighbors: Neighbors,
   positions: number[],
   colors: number[],
   indices: number[],
@@ -161,30 +162,31 @@ function greedyXAxis(
       null,
     );
 
-    // Build mask (ZY plane)
     for (let y = 0; y < CHUNK_HEIGHT; y++) {
       for (let z = 0; z < CHUNK_SIZE; z++) {
         const block = chunk.getBlock(x, y, z);
-        const neighbor = chunk.getBlock(x + direction, y, z);
-
+        const neighbor = getNeighborBlock(
+          chunk,
+          neighbors,
+          x + direction,
+          y,
+          z,
+        );
         if (block !== 0 && neighbor === 0) {
           mask[z + y * CHUNK_SIZE] = block;
         }
       }
     }
 
-    // Greedy merge
     for (let y = 0; y < CHUNK_HEIGHT; y++) {
       let z = 0;
       while (z < CHUNK_SIZE) {
         const block = mask[z + y * CHUNK_SIZE];
-
         if (block === null) {
           z++;
           continue;
         }
 
-        // Width (along Z)
         let width = 1;
         while (
           z + width < CHUNK_SIZE &&
@@ -193,10 +195,8 @@ function greedyXAxis(
           width++;
         }
 
-        // Height (along Y)
         let height = 1;
         let done = false;
-
         while (y + height < CHUNK_HEIGHT && !done) {
           for (let k = 0; k < width; k++) {
             if (mask[z + k + (y + height) * CHUNK_SIZE] !== block) {
@@ -221,7 +221,6 @@ function greedyXAxis(
           direction,
         );
 
-        // Clear mask
         for (let dy = 0; dy < height; dy++) {
           for (let dz = 0; dz < width; dz++) {
             mask[z + dz + (y + dy) * CHUNK_SIZE] = null;
@@ -234,40 +233,9 @@ function greedyXAxis(
   }
 }
 
-function addXFace(
-  positions: number[],
-  colors: number[],
-  indices: number[],
-  x: number,
-  y: number,
-  z: number,
-  width: number,
-  height: number,
-  block: number,
-  chunk: Chunk,
-  direction: 1 | -1,
-) {
-  const wx = chunk.x * CHUNK_SIZE + x;
-  const wz = chunk.z * CHUNK_SIZE + z;
-  const faceX = direction === 1 ? wx + 1 : wx;
-
-  addFaceShared(
-    positions,
-    colors,
-    indices,
-    [
-      [faceX, y, wz],
-      [faceX, y, wz + width],
-      [faceX, y + height, wz],
-      [faceX, y + height, wz + width],
-    ],
-    block,
-    direction,
-  );
-}
-
 function greedyZAxis(
   chunk: Chunk,
+  neighbors: Neighbors,
   positions: number[],
   colors: number[],
   indices: number[],
@@ -281,8 +249,13 @@ function greedyZAxis(
     for (let y = 0; y < CHUNK_HEIGHT; y++) {
       for (let x = 0; x < CHUNK_SIZE; x++) {
         const block = chunk.getBlock(x, y, z);
-        const neighbor = chunk.getBlock(x, y, z + direction);
-
+        const neighbor = getNeighborBlock(
+          chunk,
+          neighbors,
+          x,
+          y,
+          z + direction,
+        );
         if (block !== 0 && neighbor === 0) {
           mask[x + y * CHUNK_SIZE] = block;
         }
@@ -293,7 +266,6 @@ function greedyZAxis(
       let x = 0;
       while (x < CHUNK_SIZE) {
         const block = mask[x + y * CHUNK_SIZE];
-
         if (block === null) {
           x++;
           continue;
@@ -309,7 +281,6 @@ function greedyZAxis(
 
         let height = 1;
         let done = false;
-
         while (y + height < CHUNK_HEIGHT && !done) {
           for (let k = 0; k < width; k++) {
             if (mask[x + k + (y + height) * CHUNK_SIZE] !== block) {
@@ -346,6 +317,68 @@ function greedyZAxis(
   }
 }
 
+function addYFace(
+  positions: number[],
+  colors: number[],
+  indices: number[],
+  x: number,
+  y: number,
+  z: number,
+  width: number,
+  height: number,
+  block: number,
+  chunk: Chunk,
+  direction: 1 | -1,
+) {
+  const wx = chunk.x * CHUNK_SIZE + x;
+  const wz = chunk.z * CHUNK_SIZE + z;
+  const faceY = direction === 1 ? y + 1 : y;
+  addFaceShared(
+    positions,
+    colors,
+    indices,
+    [
+      [wx, faceY, wz],
+      [wx + width, faceY, wz],
+      [wx, faceY, wz + height],
+      [wx + width, faceY, wz + height],
+    ],
+    block,
+    direction,
+  );
+}
+
+function addXFace(
+  positions: number[],
+  colors: number[],
+  indices: number[],
+  x: number,
+  y: number,
+  z: number,
+  width: number,
+  height: number,
+  block: number,
+  chunk: Chunk,
+  direction: 1 | -1,
+) {
+  const wx = chunk.x * CHUNK_SIZE + x;
+  const wz = chunk.z * CHUNK_SIZE + z;
+  const faceX = direction === 1 ? wx + 1 : wx;
+  addFaceShared(
+    positions,
+    colors,
+    indices,
+    [
+      [faceX, y, wz],
+      [faceX, y, wz + width],
+      [faceX, y + height, wz],
+      [faceX, y + height, wz + width],
+    ],
+    block,
+    direction,
+  );
+}
+
 function addZFace(
   positions: number[],
   colors: number[],
@@ -362,7 +395,6 @@ function addZFace(
   const wx = chunk.x * CHUNK_SIZE + x;
   const wz = chunk.z * CHUNK_SIZE + z;
   const faceZ = direction === 1 ? wz + 1 : wz;
-
   addFaceShared(
     positions,
     colors,
@@ -389,13 +421,8 @@ function addFaceShared(
   const color = new THREE.Color(BLOCK_COLORS[block] ?? 0xff00ff);
   const vi = positions.length / 3;
 
-  for (const [x, y, z] of corners) {
-    positions.push(x, y, z);
-  }
-
-  for (let i = 0; i < 4; i++) {
-    colors.push(color.r, color.g, color.b);
-  }
+  for (const [x, y, z] of corners) positions.push(x, y, z);
+  for (let i = 0; i < 4; i++) colors.push(color.r, color.g, color.b);
 
   if (direction === 1) {
     indices.push(vi, vi + 2, vi + 1, vi + 1, vi + 2, vi + 3);

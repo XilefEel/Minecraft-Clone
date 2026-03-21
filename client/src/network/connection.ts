@@ -86,13 +86,7 @@ export class Connection {
       case "ChunkData":
         const chunk = new Chunk(event.cx, event.cz);
         chunk.blocks = new Uint8Array(event.blocks);
-
-        world.addChunk(chunk);
-        const mesh = meshChunkGreedy(chunk);
-        world.meshMap.set(world.getKey(chunk.x, chunk.z), mesh);
-
-        scene.add(mesh);
-
+        world.addChunk(chunk, scene);
         break;
 
       // if a new player joined
