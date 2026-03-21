@@ -7,11 +7,12 @@ export class ChunkManager {
   private scene: THREE.Scene;
 
   private requestedChunks = new Set<string>();
-  private renderDistance = 8;
+  private renderDistance: number;
 
-  constructor(world: World, scene: THREE.Scene) {
+  constructor(world: World, scene: THREE.Scene, renderDistance: number) {
     this.world = world;
     this.scene = scene;
+    this.renderDistance = renderDistance;
   }
 
   private getKey(cx: number, cz: number): string {

@@ -31,7 +31,11 @@ function main() {
   const { canvas, renderer, scene, camera, labelRenderer } = createScene();
 
   const world = new World(scene);
-  const chunkManager = new ChunkManager(world, scene);
+  const chunkManager = new ChunkManager(
+    world,
+    scene,
+    CONFIG.world.renderDistance,
+  );
   const player = new Player(
     CONFIG.camera.initialPos.x,
     CONFIG.camera.initialPos.y,
@@ -44,7 +48,7 @@ function main() {
   createHotbar();
 
   initPointerLock(canvas, player);
-  initRaycast(connection, scene, camera);
+  initRaycast(connection, scene, camera, player);
   const { sun, ambient } = addLights(scene);
   addGUI(ambient, sun, camera, scene);
   // important

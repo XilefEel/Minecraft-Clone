@@ -22,8 +22,10 @@ export function initRaycast(
   connection: Connection,
   scene: THREE.Scene,
   camera: THREE.Camera,
+  player: Player,
 ) {
   const raycaster = new THREE.Raycaster();
+  raycaster.far = 6;
 
   window.addEventListener("mousedown", (e) => {
     if (document.pointerLockElement === null) return;
@@ -49,19 +51,38 @@ export function initRaycast(
           z: blockZ,
         });
       } else if (e.button === 2) {
-        // right click — place
         const blockX = Math.floor(point.x + normal.x * 0.5);
         const blockY = Math.floor(point.y + normal.y * 0.5);
         const blockZ = Math.floor(point.z + normal.z * 0.5);
 
-        // send block break to server
-        connection.sendEvent({
-          type: "BlockPlace",
-          x: blockX,
-          y: blockY,
-          z: blockZ,
-          block_id: getSelectedBlock(),
+        const overlapsWithAnyPlayer = [
+          {
+            position: player.position,
+            width: player.width,
+            height: player.height,
+          },
+          ...connection.getRemotePlayerPositions(),
+        ].some(({ position, width, height }) => {
+          const hw = width / 2;
+          return (
+            blockX < position.x + hw &&
+            blockX + 1 > position.x - hw &&
+            blockY < position.y + height &&
+            blockY + 1 > position.y &&
+            blockZ < position.z + hw &&
+            blockZ + 1 > position.z - hw
+          );
         });
+
+        if (!overlapsWithAnyPlayer) {
+          connection.sendEvent({
+            type: "BlockPlace",
+            x: blockX,
+            y: blockY,
+            z: blockZ,
+            block_id: getSelectedBlock(),
+          });
+        }
       }
     }
   });

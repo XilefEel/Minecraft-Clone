@@ -1,6 +1,5 @@
 import * as THREE from "three";
-
-const DAY_DURATION = 1_200_000; // 20 minutes
+import { CONFIG } from "../config";
 
 const DAWN_COLOR = new THREE.Color(0xffb74d);
 const DAY_COLOR = new THREE.Color(0x87ceeb);
@@ -18,12 +17,9 @@ let lastTime = Date.now();
 // Night (0.8 - 1)
 
 export function receiveServerTime(world_time: number) {
-  const duration = 1_200;
-  console.log("Received world time:", world_time);
-  console.log("Client time", dayTime);
+  const duration = CONFIG.world.dayDuration / 1000; // convert to seconds
   dayTime = (world_time / duration) % 1.0;
   dayCounter = Math.floor(world_time / duration) + 1;
-  console.log("Synced time:", dayTime);
 }
 
 function getSkyColor(): THREE.Color {
@@ -106,7 +102,7 @@ export function updateDayNight(
   renderer: THREE.WebGLRenderer,
 ) {
   const now = Date.now();
-  dayTime = (dayTime + (now - lastTime) / DAY_DURATION) % 1;
+  dayTime = (dayTime + (now - lastTime) / CONFIG.world.dayDuration) % 1;
   lastTime = now;
 
   const skyColor = getSkyColor();

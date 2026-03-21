@@ -58,51 +58,27 @@ export class Player {
   }
 
   update(world: World) {
-    const hw = this.width / 2;
-    const e = 0.001; // epsilon
-
     // X Axis
     this.position.x += this.velocity.x;
-    const xCollision = this.getSolidBlock(world);
-
-    if (xCollision) {
-      if (xCollision.x >= this.position.x) {
-        // right
-        this.position.x = xCollision.x - hw - e;
-      } else {
-        // left
-        this.position.x = xCollision.x + 1 + hw + e;
-      }
+    if (this.getSolidBlock(world)) {
+      this.position.x -= this.velocity.x;
       this.velocity.x = 0;
     }
 
     // Z Axis
     this.position.z += this.velocity.z;
-    const zCollision = this.getSolidBlock(world);
-
-    if (zCollision) {
-      if (zCollision.z >= this.position.z) {
-        // front
-        this.position.z = zCollision.z - hw - e;
-      } else {
-        // back
-        this.position.z = zCollision.z + 1 + hw + e;
-      }
+    if (this.getSolidBlock(world)) {
+      this.position.z -= this.velocity.z;
       this.velocity.z = 0;
     }
 
     // Y Axis
     this.position.y += this.velocity.y;
     const yCollision = this.getSolidBlock(world);
-
     if (yCollision) {
+      this.position.y -= this.velocity.y;
       if (this.velocity.y < 0) {
-        // top
-        this.position.y = yCollision.y + 1 + e;
         this.isGrounded = true;
-      } else {
-        // bottom
-        this.position.y = yCollision.y - this.height - e;
       }
       this.velocity.y = 0;
     } else {

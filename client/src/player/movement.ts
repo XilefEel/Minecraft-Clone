@@ -16,7 +16,10 @@ export function initMovement(world: World, player: Player) {
     direction.set(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
     right.crossVectors(direction, new THREE.Vector3(0, 1, 0));
 
-    const speed = CONFIG.player.speed;
+    let speed = CONFIG.player.speed;
+    if (keys["ShiftLeft"]) {
+      speed *= 2; // sprinting
+    }
 
     const moveVelocity = new THREE.Vector3();
     if (keys["KeyW"]) moveVelocity.addScaledVector(direction, speed);

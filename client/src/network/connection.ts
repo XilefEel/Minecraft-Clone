@@ -128,6 +128,18 @@ export class Connection {
     }
   }
 
+  getRemotePlayerPositions(): {
+    position: THREE.Vector3;
+    width: number;
+    height: number;
+  }[] {
+    return Array.from(this.remotePlayersMap.values()).map((p) => ({
+      position: p.mesh.position,
+      width: p.width,
+      height: p.height,
+    }));
+  }
+
   updateRemotePlayers() {
     this.remotePlayersMap.forEach((p) => p.tick());
   }

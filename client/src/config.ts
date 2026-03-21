@@ -20,9 +20,13 @@ export const CONFIG = {
     sunPos: { x: 50, y: 100, z: 50 },
   },
   player: {
-    speed: 0.07,
+    speed: 0.08,
     gravity: -0.008,
     jumpStrength: 0.14,
     height: 1.8,
+  },
+  world: {
+    renderDistance: 8,
+    dayDuration: 600_000, // milliseconds for a full day cycle
   },
 };
