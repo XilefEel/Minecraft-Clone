@@ -38,7 +38,7 @@ function main() {
     CONFIG.camera.initialPos.z,
   );
 
-  const connection = new Connection(player, world, scene);
+  const connection = new Connection(player, world, chunkManager, scene);
 
   const movementControls = initMovement(world, player);
   createHotbar();
@@ -77,7 +77,7 @@ function main() {
       });
       lastChunkUpdate = now;
     }
-    // updateDayNight(sun, ambient, scene, renderer);
+    updateDayNight(sun, ambient, scene, renderer);
     movementControls();
 
     const camPos = player.getCameraPosition();

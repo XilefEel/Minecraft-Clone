@@ -29,11 +29,12 @@ export class ChunkManager {
     // load new chunks
     for (let dx = -this.renderDistance; dx <= this.renderDistance; dx++) {
       for (let dz = -this.renderDistance; dz <= this.renderDistance; dz++) {
+        if (Math.sqrt(dx * dx + dz * dz) > this.renderDistance) continue;
+
         const ncx = cx + dx;
         const ncz = cz + dz;
         const key = this.getKey(ncx, ncz);
         if (!this.requestedChunks.has(key)) {
-          this.requestedChunks.add(key);
           requestChunk(ncx, ncz);
         }
       }
@@ -42,7 +43,7 @@ export class ChunkManager {
     // unload distant chunks
     const toUnload: { x: number; z: number }[] = [];
     for (const chunk of this.world.chunkMap.values()) {
-      const dist = Math.max(Math.abs(chunk.x - cx), Math.abs(chunk.z - cz));
+      const dist = Math.sqrt((chunk.x - cx) ** 2 + (chunk.z - cz) ** 2);
       if (dist > this.renderDistance + 1) {
         toUnload.push({ x: chunk.x, z: chunk.z });
       }
@@ -59,5 +60,9 @@ export class ChunkManager {
       this.world.chunkMap.delete(key);
       this.requestedChunks.delete(this.getKey(x, z));
     }
+  }
+
+  markReceived(cx: number, cz: number) {
+    this.requestedChunks.add(this.getKey(cx, cz));
   }
 }

@@ -6,6 +6,7 @@ import * as THREE from "three";
 import { RemotePlayer } from "../player/remotePlayer";
 import { notify } from "../ui/chat";
 import { receiveServerTime } from "../scene/dayNight";
+import type { ChunkManager } from "../world/chunkManager";
 
 export type ServerEvent =
   | { type: "ChunkData"; cx: number; cz: number; blocks: number[] }
@@ -29,13 +30,21 @@ export type ClientEvent =
   | { type: "RequestChunk"; cx: number; cz: number };
 
 export class Connection {
+  chunkManager: ChunkManager;
+
   private ws: WebSocket;
   private remotePlayersMap = new Map<string, RemotePlayer>();
 
   private lastSentPosition = new THREE.Vector3();
   private lastSentYaw = 0;
 
-  constructor(player: Player, world: World, scene: THREE.Scene) {
+  constructor(
+    player: Player,
+    world: World,
+    chunkManager: ChunkManager,
+    scene: THREE.Scene,
+  ) {
+    this.chunkManager = chunkManager;
     this.ws = new WebSocket("ws://localhost:3000/ws");
     this.ws.binaryType = "arraybuffer";
 
@@ -77,8 +86,8 @@ export class Connection {
         const chunk = new Chunk(event.cx, event.cz);
         chunk.blocks = new Uint8Array(event.blocks);
         world.addChunk(chunk);
+        this.chunkManager.markReceived(event.cx, event.cz);
         break;
-
       // if a new player joined
       case "PlayerJoined":
         this.remotePlayersMap.set(event.id, new RemotePlayer(event.id, scene));
