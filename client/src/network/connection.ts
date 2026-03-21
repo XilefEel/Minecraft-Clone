@@ -6,6 +6,7 @@ import * as THREE from "three";
 import { RemotePlayer } from "../player/remotePlayer";
 import { meshChunkGreedy } from "../world/greedyMesher";
 import { notify } from "../ui/chat";
+import { receiveServerTime } from "../scene/dayNight";
 
 export type ServerEvent =
   | { type: "ChunkData"; cx: number; cz: number; blocks: number[] }
@@ -19,7 +20,8 @@ export type ServerEvent =
       z: number;
       yaw: number;
     }
-  | { type: "BlockUpdate"; x: number; y: number; z: number; block_id: number };
+  | { type: "BlockUpdate"; x: number; y: number; z: number; block_id: number }
+  | { type: "TimeUpdate"; time: number };
 
 export type ClientEvent =
   | { type: "Move"; x: number; y: number; z: number; yaw: number }
@@ -125,6 +127,10 @@ export class Connection {
       case "BlockUpdate":
         world.setBlock(event.x, event.y, event.z, event.block_id);
         world.remeshWithWorldPos(event.x, event.z, scene);
+        break;
+
+      case "TimeUpdate":
+        receiveServerTime(event.time);
         break;
     }
   }

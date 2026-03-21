@@ -12,11 +12,12 @@ import { World } from "./world/world";
 import { createHotbar } from "./ui/hotbar";
 import { ChunkManager } from "./world/chunkManager";
 import { addGUI } from "./ui/gui";
-import { updateDayNight } from "./scene/dayNight";
+import { getDayTimeString, updateDayNight } from "./scene/dayNight";
 
 const worldCoords = document.getElementById("worldCoords")!;
 const chunkCoords = document.getElementById("chunkCoords")!;
 const localCoords = document.getElementById("localCoords")!;
+const time = document.getElementById("time")!;
 
 let lastChunkUpdate = 0;
 
@@ -40,7 +41,7 @@ function main() {
   initPointerLock(canvas, player);
   initRaycast(connection, scene, camera);
   const { sun, ambient } = addLights(scene);
-  addGUI(ambient, sun, camera, scene);
+  // addGUI(ambient, sun, camera, scene);
   // important
   function resizeDisplay(renderer: THREE.WebGLRenderer) {
     const canvas = renderer.domElement;
@@ -90,6 +91,7 @@ function main() {
     worldCoords.textContent = `World: ${player.position.x.toFixed(2)}, ${player.position.y.toFixed(2)}, ${player.position.z.toFixed(2)}`;
     chunkCoords.textContent = `Chunk: ${cx}, ${cz}`;
     localCoords.textContent = `Local: ${lx}, ${ly}, ${lz}`;
+    time.textContent = `${getDayTimeString()}`;
 
     connection.updateRemotePlayers();
 

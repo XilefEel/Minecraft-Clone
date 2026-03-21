@@ -27,6 +27,9 @@ pub enum ServerEvent {
         z: i32,
         block_id: u8,
     },
+    TimeUpdate {
+        time: f64,
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug)]

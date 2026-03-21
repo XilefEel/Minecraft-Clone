@@ -7,27 +7,53 @@ const DAY_COLOR = new THREE.Color(0x87ceeb);
 const DUSK_COLOR = new THREE.Color(0xff7043);
 const NIGHT_COLOR = new THREE.Color(0x0a0a2a);
 
-let dayTime = 0.4;
+let dayTime = 0;
 let lastTime = Date.now();
 
+// Night (0 - 0.2)
+// Sunrise (0.2 - 2.5 - 0.3)
+// Day (0.3 - 0.7)
+// Sunset (0.7 - 0.75 -  0.8)
+// Night (0.8 - 1)
+
+export function receiveServerTime(world_time: number) {
+  console.log("Received world time:", world_time);
+  console.log("Client time", dayTime);
+  dayTime = world_time;
+  console.log("Synced time:", dayTime);
+}
+
 function getSkyColor(): THREE.Color {
+  // Night (0 - 0.2)
   if (dayTime < 0.2) {
     return NIGHT_COLOR.clone();
-  } else if (dayTime < 0.3) {
-    const t = (dayTime - 0.2) / 0.1;
+  }
+  // Night - Sunrise (0.2 - 0.25)
+  else if (dayTime < 0.25) {
+    const t = (dayTime - 0.2) / 0.05;
     return NIGHT_COLOR.clone().lerp(DAWN_COLOR, t);
-  } else if (dayTime < 0.4) {
-    const t = (dayTime - 0.3) / 0.1;
+  }
+  // Sunrise - Day (0.25 - 0.3)
+  else if (dayTime < 0.3) {
+    const t = (dayTime - 0.25) / 0.05;
     return DAWN_COLOR.clone().lerp(DAY_COLOR, t);
-  } else if (dayTime < 0.7) {
+  }
+  // Day (0.3 - 0.7)
+  else if (dayTime < 0.7) {
     return DAY_COLOR.clone();
-  } else if (dayTime < 0.8) {
-    const t = (dayTime - 0.7) / 0.1;
+  }
+  // Day - Sunset (0.7 - 0.75)
+  else if (dayTime < 0.75) {
+    const t = (dayTime - 0.7) / 0.05;
     return DAY_COLOR.clone().lerp(DUSK_COLOR, t);
-  } else if (dayTime < 0.9) {
-    const t = (dayTime - 0.8) / 0.1;
+  }
+  // Sunset - Night (0.75 - 0.8)
+  else if (dayTime < 0.8) {
+    const t = (dayTime - 0.75) / 0.05;
     return DUSK_COLOR.clone().lerp(NIGHT_COLOR, t);
-  } else {
+  }
+  // Night (0.8 - 1)
+  else {
     return NIGHT_COLOR.clone();
   }
 }
@@ -104,4 +130,27 @@ export function updateDayNight(
     20,
     100,
   );
+}
+
+export function getDayTimeString(): string {
+  const totalHours = dayTime * 24;
+  const hours = Math.floor(totalHours);
+  const minutes = Math.floor((totalHours - hours) * 60);
+  const ampm = hours < 12 ? "AM" : "PM";
+
+  const displayHours = hours % 12 === 0 ? 12 : hours % 12;
+  const displayMinutes = minutes.toString().padStart(2, "0");
+
+  const timeOfDay =
+    dayTime < 0.2
+      ? "Night"
+      : dayTime < 0.3
+        ? "Dawn"
+        : dayTime < 0.7
+          ? "Day"
+          : dayTime < 0.8
+            ? "Dusk"
+            : "Night";
+
+  return `${displayHours}:${displayMinutes} ${ampm} - ${timeOfDay}`;
 }

@@ -256,7 +256,11 @@ pub async fn handle_socket(mut socket: WebSocket, state: SharedState) {
 
     let _ = stream_chunks(&mut socket, &state, 0, 0, 8).await;
 
+    let time = state.read().await.get_world_time();
+    let _ = send_event(&mut socket, ServerEvent::TimeUpdate { time }).await;
+
     register_player(&state, &id).await;
+
     notify_player_joined(&state, &id).await;
     sync_existing_players(&mut socket, &state, &id).await;
 

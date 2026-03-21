@@ -2,6 +2,7 @@ use crate::chunk::Chunk;
 use crate::protocol::ServerEvent;
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::RwLock;
 use tokio::sync::broadcast;
 
@@ -17,6 +18,7 @@ pub struct PlayerState {
 pub struct GameState {
     pub players: HashMap<String, PlayerState>,
     pub world: HashMap<(i32, i32), Chunk>,
+    pub world_time: std::time::Instant,
     pub tx: broadcast::Sender<ServerEvent>,
 }
 
@@ -35,10 +37,28 @@ impl GameState {
         let state = Arc::new(RwLock::new(Self {
             players: HashMap::new(),
             world,
+            world_time: std::time::Instant::now(),
             tx: tx.clone(),
         }));
 
+        let state_clone = state.clone();
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(120));
+            loop {
+                interval.tick().await;
+                let s = state_clone.read().await;
+                let _ = s.tx.send(ServerEvent::TimeUpdate {
+                    time: s.get_world_time(),
+                });
+            }
+        });
+
         (state, tx)
+    }
+
+    pub fn get_world_time(&self) -> f64 {
+        let elapsed = self.world_time.elapsed().as_secs_f64();
+        (elapsed / 120.0) % 1.0 // 120 seconds per day
     }
 }
 
