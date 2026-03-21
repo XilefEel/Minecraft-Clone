@@ -57,8 +57,7 @@ impl GameState {
     }
 
     pub fn get_world_time(&self) -> f64 {
-        let elapsed = self.world_time.elapsed().as_secs_f64();
-        (elapsed / 120.0) % 1.0 // 120 seconds per day
+        self.world_time.elapsed().as_secs_f64()
     }
 }
 

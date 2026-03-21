@@ -1,12 +1,13 @@
 import * as THREE from "three";
 
-const DAY_DURATION = 120000; // 2 minutes
+const DAY_DURATION = 1_200_000; // 20 minutes
 
 const DAWN_COLOR = new THREE.Color(0xffb74d);
 const DAY_COLOR = new THREE.Color(0x87ceeb);
 const DUSK_COLOR = new THREE.Color(0xff7043);
 const NIGHT_COLOR = new THREE.Color(0x0a0a2a);
 
+let dayCounter = 0;
 let dayTime = 0;
 let lastTime = Date.now();
 
@@ -17,9 +18,11 @@ let lastTime = Date.now();
 // Night (0.8 - 1)
 
 export function receiveServerTime(world_time: number) {
+  const duration = 1_200;
   console.log("Received world time:", world_time);
   console.log("Client time", dayTime);
-  dayTime = world_time;
+  dayTime = (world_time / duration) % 1.0;
+  dayCounter = Math.floor(world_time / duration) + 1;
   console.log("Synced time:", dayTime);
 }
 
@@ -130,6 +133,9 @@ export function updateDayNight(
     20,
     100,
   );
+}
+export function getDayCounter(): number {
+  return dayCounter;
 }
 
 export function getDayTimeString(): string {

@@ -12,11 +12,16 @@ import { World } from "./world/world";
 import { createHotbar } from "./ui/hotbar";
 import { ChunkManager } from "./world/chunkManager";
 import { addGUI } from "./ui/gui";
-import { getDayTimeString, updateDayNight } from "./scene/dayNight";
+import {
+  getDayCounter,
+  getDayTimeString,
+  updateDayNight,
+} from "./scene/dayNight";
 
 const worldCoords = document.getElementById("worldCoords")!;
 const chunkCoords = document.getElementById("chunkCoords")!;
 const localCoords = document.getElementById("localCoords")!;
+const day = document.getElementById("day")!;
 const time = document.getElementById("time")!;
 
 let lastChunkUpdate = 0;
@@ -91,6 +96,7 @@ function main() {
     worldCoords.textContent = `World: ${player.position.x.toFixed(2)}, ${player.position.y.toFixed(2)}, ${player.position.z.toFixed(2)}`;
     chunkCoords.textContent = `Chunk: ${cx}, ${cz}`;
     localCoords.textContent = `Local: ${lx}, ${ly}, ${lz}`;
+    day.textContent = `Day: ${getDayCounter()}`;
     time.textContent = `${getDayTimeString()}`;
 
     connection.updateRemotePlayers();
