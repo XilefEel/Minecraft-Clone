@@ -125,7 +125,7 @@ export function updateDayNight(
   scene.fog = new THREE.Fog(
     skyColor.clone().multiplyScalar(0.7).getHex(),
     20,
-    400,
+    150,
   );
 }
 

@@ -64,3 +64,21 @@ canvas {
     z-index: 100;
     transition: opacity 0.5s;
 }
+
+#chat {
+    display: none;
+    position: fixed;
+    bottom: 50px;
+    left: 3%;
+    width: 300px;
+    background: rgba(0, 0, 0, 0.35);
+    border: none;
+    outline: none;
+    color: white;
+    font-family: monospace;
+    font-size: 16px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    caret-color: white;
+    box-sizing: border-box;
+}

@@ -31,6 +31,10 @@ pub enum ServerEvent {
     TimeUpdate {
         time: f64,
     },
+    ChatMessage {
+        player_id: String,
+        message: String,
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -57,5 +61,8 @@ pub enum ClientEvent {
     RequestChunk {
         cx: i32,
         cz: i32,
+    },
+    ChatMessage {
+        message: String,
     },
 }

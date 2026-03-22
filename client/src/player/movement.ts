@@ -26,21 +26,23 @@ export function initMovement(world: World, player: Player) {
       speed *= 2; // sprinting
     }
 
-    if (keys["KeyW"]) moveVelocity.addScaledVector(direction, speed);
-    if (keys["KeyS"]) moveVelocity.addScaledVector(direction, -speed);
-    if (keys["KeyA"]) moveVelocity.addScaledVector(right, -speed);
-    if (keys["KeyD"]) moveVelocity.addScaledVector(right, speed);
+    if (document.activeElement?.id !== "chat") {
+      if (keys["KeyW"]) moveVelocity.addScaledVector(direction, speed);
+      if (keys["KeyS"]) moveVelocity.addScaledVector(direction, -speed);
+      if (keys["KeyA"]) moveVelocity.addScaledVector(right, -speed);
+      if (keys["KeyD"]) moveVelocity.addScaledVector(right, speed);
+
+      // jump
+      if (keys["Space"] && player.isGrounded) {
+        player.velocity.y = CONFIG.player.jumpStrength;
+      }
+    }
 
     player.velocity.x = moveVelocity.x;
     player.velocity.z = moveVelocity.z;
 
     // gravity
     player.velocity.y += CONFIG.player.gravity;
-
-    // jump
-    if (keys["Space"] && player.isGrounded) {
-      player.velocity.y = CONFIG.player.jumpStrength;
-    }
 
     player.update(world);
   };

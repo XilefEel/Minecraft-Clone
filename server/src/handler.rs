@@ -181,6 +181,7 @@ async fn process_client_event(
             None
         }
 
+        // when a player requests chunk data
         ClientEvent::RequestChunk { cx, cz } => {
             println!("Chunk requested: {}, {}", cx, cz);
             if !state.read().await.world.contains_key(&(cx, cz)) {
@@ -206,6 +207,15 @@ async fn process_client_event(
                 cz,
                 blocks: blocks.to_vec(),
             })
+        }
+
+        // when a player sends a chat message
+        ClientEvent::ChatMessage { message } => {
+            let _ = state.read().await.tx.send(ServerEvent::ChatMessage {
+                player_id: id.to_string(),
+                message,
+            });
+            None
         }
     }
 }

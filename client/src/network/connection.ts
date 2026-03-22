@@ -4,7 +4,7 @@ import type { Player } from "../player/player";
 import type { World } from "../world/world";
 import * as THREE from "three";
 import { RemotePlayer } from "../player/remotePlayer";
-import { notify } from "../ui/chat";
+import { sendChat } from "../ui/chat";
 import { receiveServerTime } from "../scene/dayNight";
 import type { ChunkManager } from "../world/chunkManager";
 
@@ -22,14 +22,16 @@ export type ServerEvent =
       yaw: number;
     }
   | { type: "BlockUpdate"; x: number; y: number; z: number; block_id: number }
-  | { type: "TimeUpdate"; time: number };
+  | { type: "TimeUpdate"; time: number }
+  | { type: "ChatMessage"; player_id: string; message: string };
 
 export type ClientEvent =
   | { type: "Ready" }
   | { type: "Move"; x: number; y: number; z: number; yaw: number }
   | { type: "BlockBreak"; x: number; y: number; z: number }
   | { type: "BlockPlace"; x: number; y: number; z: number; block_id: number }
-  | { type: "RequestChunk"; cx: number; cz: number };
+  | { type: "RequestChunk"; cx: number; cz: number }
+  | { type: "ChatMessage"; message: string };
 
 export class Connection {
   chunkManager: ChunkManager;
@@ -102,14 +104,14 @@ export class Connection {
       // if a new player joined
       case "PlayerJoined":
         this.remotePlayersMap.set(event.id, new RemotePlayer(event.id, scene));
-        notify(`${event.id.slice(0, 8)} joined the game`);
+        sendChat(`${event.id.slice(0, 8)} joined the game`);
         break;
 
       // if a player left
       case "PlayerLeft":
         this.remotePlayersMap.get(event.id)?.remove(scene);
         this.remotePlayersMap.delete(event.id);
-        notify(`${event.id.slice(0, 8)} left the game`);
+        sendChat(`${event.id.slice(0, 8)} left the game`);
         break;
 
       // if a player position changes
@@ -135,6 +137,10 @@ export class Connection {
 
       case "TimeUpdate":
         receiveServerTime(event.time);
+        break;
+
+      case "ChatMessage":
+        sendChat(`${event.player_id.slice(0, 8)}: ${event.message}`);
         break;
     }
   }

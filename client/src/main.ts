@@ -13,6 +13,7 @@ import { ChunkManager } from "./world/chunkManager";
 import { addGUI } from "./ui/gui";
 import { updateDayNight } from "./scene/dayNight";
 import { updateHUD } from "./ui/hud";
+import { initChat } from "./ui/chat";
 
 let lastChunkUpdate = 0;
 
@@ -37,6 +38,7 @@ function main() {
 
   createHotbar();
   addGUI(ambient, sun, camera, scene);
+  initChat(connection, canvas);
 
   // important
   function resizeDisplay(renderer: THREE.WebGLRenderer) {
