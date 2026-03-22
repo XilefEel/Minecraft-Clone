@@ -114,6 +114,8 @@ async fn process_client_event(
     id: &str,
 ) -> Option<ServerEvent> {
     match msg {
+        ClientEvent::Ready => None,
+
         // when a player moves
         ClientEvent::Move { x, y, z, yaw } => {
             {
@@ -180,6 +182,7 @@ async fn process_client_event(
         }
 
         ClientEvent::RequestChunk { cx, cz } => {
+            println!("Chunk requested: {}, {}", cx, cz);
             if !state.read().await.world.contains_key(&(cx, cz)) {
                 let blocks = tokio::task::spawn_blocking(move || {
                     let mut chunk = Chunk::new();
@@ -251,20 +254,23 @@ async fn event_loop(
 
 pub async fn handle_socket(mut socket: WebSocket, state: SharedState) {
     let id = Uuid::new_v4().to_string();
-
     let mut rx = state.read().await.tx.subscribe();
 
-    let _ = stream_chunks(&mut socket, &state, 0, 0, 4).await;
+    if let Some(Ok(Message::Binary(data))) = socket.recv().await {
+        if let Ok(ClientEvent::Ready) = from_slice::<ClientEvent>(&data) {
+            let _ = stream_chunks(&mut socket, &state, 0, 0, 4).await;
 
-    let time = state.read().await.get_world_time();
-    let _ = send_event(&mut socket, ServerEvent::TimeUpdate { time }).await;
+            let time = state.read().await.get_world_time();
+            let _ = send_event(&mut socket, ServerEvent::TimeUpdate { time }).await;
 
-    register_player(&state, &id).await;
+            register_player(&state, &id).await;
+            notify_player_joined(&state, &id).await;
+            sync_existing_players(&mut socket, &state, &id).await;
 
-    notify_player_joined(&state, &id).await;
-    sync_existing_players(&mut socket, &state, &id).await;
+            let _ = send_event(&mut socket, ServerEvent::Ready).await;
+        }
+    }
 
     event_loop(&mut socket, &state, &id, &mut rx).await;
-
     disconnect_player(&state, &id).await;
 }

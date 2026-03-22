@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type")]
 pub enum ServerEvent {
+    Ready,
     ChunkData {
         cx: i32,
         cz: i32,
@@ -35,6 +36,7 @@ pub enum ServerEvent {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "type")]
 pub enum ClientEvent {
+    Ready,
     Move {
         x: f64,
         y: f64,

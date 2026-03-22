@@ -9,6 +9,7 @@ import { receiveServerTime } from "../scene/dayNight";
 import type { ChunkManager } from "../world/chunkManager";
 
 export type ServerEvent =
+  | { type: "Ready" }
   | { type: "ChunkData"; cx: number; cz: number; blocks: number[] }
   | { type: "PlayerJoined"; id: string }
   | { type: "PlayerLeft"; id: string }
@@ -24,6 +25,7 @@ export type ServerEvent =
   | { type: "TimeUpdate"; time: number };
 
 export type ClientEvent =
+  | { type: "Ready" }
   | { type: "Move"; x: number; y: number; z: number; yaw: number }
   | { type: "BlockBreak"; x: number; y: number; z: number }
   | { type: "BlockPlace"; x: number; y: number; z: number; block_id: number }
@@ -48,7 +50,10 @@ export class Connection {
     this.ws = new WebSocket("ws://localhost:3000/ws");
     this.ws.binaryType = "arraybuffer";
 
-    this.ws.onopen = () => console.log("connected to server");
+    this.ws.onopen = () => {
+      console.log("connected to server");
+      this.sendEvent({ type: "Ready" });
+    };
     this.ws.onclose = () => console.log("disconnected from server");
 
     this.ws.onmessage = (e) => {
@@ -81,13 +86,20 @@ export class Connection {
 
   private handleEvent(event: ServerEvent, world: World, scene: THREE.Scene) {
     switch (event.type) {
+      case "Ready":
+        console.log("server ready, starting chunk manager");
+        this.chunkManager.startUpdating();
+        break;
+
       // if received chunk data
       case "ChunkData":
         const chunk = new Chunk(event.cx, event.cz);
         chunk.blocks = new Uint8Array(event.blocks);
         world.addChunk(chunk);
         this.chunkManager.markReceived(event.cx, event.cz);
+
         break;
+
       // if a new player joined
       case "PlayerJoined":
         this.remotePlayersMap.set(event.id, new RemotePlayer(event.id, scene));

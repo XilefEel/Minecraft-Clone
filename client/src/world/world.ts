@@ -4,13 +4,18 @@ import { Chunk, CHUNK_SIZE } from "./chunk";
 export class World {
   chunkMap: Map<number, Chunk> = new Map();
   meshMap: Map<number, THREE.Mesh> = new Map();
+
   private worker = new Worker(new URL("./webWorker.ts", import.meta.url), {
     type: "module",
   });
   private scene: THREE.Scene;
+  private chunkMaterial: THREE.MeshLambertMaterial;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
+    this.chunkMaterial = new THREE.MeshLambertMaterial({
+      vertexColors: true,
+    });
 
     // listen for worker messages when done meshing
     this.worker.onmessage = (e) => {
@@ -27,8 +32,7 @@ export class World {
       );
       geometry.setIndex(new THREE.BufferAttribute(idxArray, 1));
 
-      const material = new THREE.MeshLambertMaterial({ vertexColors: true });
-      const mesh = new THREE.Mesh(geometry, material);
+      const mesh = new THREE.Mesh(geometry, this.chunkMaterial);
 
       const key = this.getKey(chunkX, chunkZ);
       const oldMesh = this.meshMap.get(key);
@@ -57,11 +61,29 @@ export class World {
   }
 
   remeshWithWorldPos(x: number, z: number) {
-    const cx = Math.floor(x / CHUNK_SIZE);
-    const cz = Math.floor(z / CHUNK_SIZE);
+    const cx = this.toChunkCoord(x);
+    const cz = this.toChunkCoord(z);
     const chunk = this.chunkMap.get(this.getKey(cx, cz));
 
     if (chunk) this.remeshChunk(chunk);
+
+    const localX = this.toLocalCoord(x);
+    const localZ = this.toLocalCoord(z);
+
+    const neighbors: (Chunk | undefined)[] = [];
+
+    if (localX === 0)
+      neighbors.push(this.chunkMap.get(this.getKey(cx - 1, cz)));
+    if (localX === CHUNK_SIZE - 1)
+      neighbors.push(this.chunkMap.get(this.getKey(cx + 1, cz)));
+    if (localZ === 0)
+      neighbors.push(this.chunkMap.get(this.getKey(cx, cz - 1)));
+    if (localZ === CHUNK_SIZE - 1)
+      neighbors.push(this.chunkMap.get(this.getKey(cx, cz + 1)));
+
+    for (const neighbor of neighbors) {
+      if (neighbor) this.remeshChunk(neighbor);
+    }
   }
 
   remeshChunk(chunk: Chunk) {
@@ -119,11 +141,6 @@ export class World {
     return chunk.getBlock(localX, Math.floor(y), localZ);
   }
 
-  isSolid(x: number, y: number, z: number): boolean {
-    const block = this.getBlock(x, y, z);
-    return block !== 0 && block !== 5; // 0 = air, 5 = water
-  }
-
   setBlock(x: number, y: number, z: number, type: number) {
     const chunkX = this.toChunkCoord(x);
     const chunkZ = this.toChunkCoord(z);
@@ -135,5 +152,10 @@ export class World {
     chunk.setBlock(localX, Math.floor(y), localZ, type);
 
     return chunk;
+  }
+
+  isSolid(x: number, y: number, z: number): boolean {
+    const block = this.getBlock(x, y, z);
+    return block !== 0 && block !== 5; // 0 = air, 5 = water
   }
 }

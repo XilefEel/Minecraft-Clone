@@ -9,6 +9,8 @@ export class ChunkManager {
   private requestedChunks = new Set<string>();
   private renderDistance: number;
 
+  private ready = false;
+
   constructor(world: World, scene: THREE.Scene, renderDistance: number) {
     this.world = world;
     this.scene = scene;
@@ -19,11 +21,17 @@ export class ChunkManager {
     return `${cx},${cz}`;
   }
 
+  startUpdating() {
+    this.ready = true;
+  }
+
   update(
     playerX: number,
     playerZ: number,
     requestChunk: (cx: number, cz: number) => void,
   ) {
+    if (!this.ready) return;
+
     const cx = Math.floor(playerX / CHUNK_SIZE);
     const cz = Math.floor(playerZ / CHUNK_SIZE);
 
@@ -34,8 +42,10 @@ export class ChunkManager {
 
         const ncx = cx + dx;
         const ncz = cz + dz;
+
         const key = this.getKey(ncx, ncz);
         if (!this.requestedChunks.has(key)) {
+          this.requestedChunks.add(key);
           requestChunk(ncx, ncz);
         }
       }
