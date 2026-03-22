@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { World } from "../world/world";
+import { CONFIG } from "../config";
 
 export class Player {
   position: THREE.Vector3;
@@ -8,29 +9,29 @@ export class Player {
   pitch: number = 0;
   isGrounded = false;
 
-  readonly width = 0.4;
-  readonly height = 1.8;
-  readonly eyeHeight = 1.6;
+  readonly width = CONFIG.player.width;
+  readonly height = CONFIG.player.height;
+  readonly eyeHeight = CONFIG.player.eyeHeight;
 
   constructor(x: number, y: number, z: number) {
     this.position = new THREE.Vector3(x, y, z);
     this.velocity = new THREE.Vector3(0, 0, 0);
   }
 
-  private getSolidBlock(world: World): THREE.Vector3 | null {
+  private getSolidBlock(world: World): boolean {
     const { min, max } = this.getBoundingBox();
 
     for (let x = Math.floor(min.x); x <= Math.floor(max.x); x++) {
       for (let y = Math.floor(min.y); y <= Math.floor(max.y); y++) {
         for (let z = Math.floor(min.z); z <= Math.floor(max.z); z++) {
           if (world.isSolid(x, y, z)) {
-            return new THREE.Vector3(x, y, z);
+            return true;
           }
         }
       }
     }
 
-    return null;
+    return false;
   }
 
   getCameraPosition() {

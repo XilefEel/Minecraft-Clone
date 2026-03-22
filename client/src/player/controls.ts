@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { Player } from "./player";
 import { Connection } from "../network/connection";
 import { getSelectedBlock } from "../ui/hotbar";
+import { CONFIG } from "../config";
 
 export function initPointerLock(canvas: HTMLCanvasElement, player: Player) {
   canvas.addEventListener("click", () => {
@@ -11,14 +12,13 @@ export function initPointerLock(canvas: HTMLCanvasElement, player: Player) {
   document.addEventListener("mousemove", (e: MouseEvent) => {
     if (document.pointerLockElement !== canvas) return;
 
-    const sensitivity = 0.0025;
-    player.yaw -= e.movementX * sensitivity;
-    player.pitch -= e.movementY * sensitivity;
+    player.yaw -= e.movementX * CONFIG.player.sensitivity;
+    player.pitch -= e.movementY * CONFIG.player.sensitivity;
     player.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, player.pitch));
   });
 }
 
-export function initRaycast(
+export function initBlockInteraction(
   connection: Connection,
   scene: THREE.Scene,
   camera: THREE.Camera,
@@ -27,10 +27,12 @@ export function initRaycast(
   const raycaster = new THREE.Raycaster();
   raycaster.far = 6;
 
+  const CENTER = new THREE.Vector2(0, 0);
+
   window.addEventListener("mousedown", (e) => {
     if (document.pointerLockElement === null) return;
 
-    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+    raycaster.setFromCamera(CENTER, camera);
     const intersects = raycaster.intersectObjects(scene.children);
 
     if (intersects.length > 0) {
@@ -39,9 +41,7 @@ export function initRaycast(
 
       if (e.button === 0) {
         // left click — break
-        const blockX = Math.floor(point.x - normal.x * 0.5);
-        const blockY = Math.floor(point.y - normal.y * 0.5);
-        const blockZ = Math.floor(point.z - normal.z * 0.5);
+        const { blockX, blockY, blockZ } = getBlockPos(point, normal, -1);
 
         // send block break to server
         connection.sendEvent({
@@ -51,9 +51,7 @@ export function initRaycast(
           z: blockZ,
         });
       } else if (e.button === 2) {
-        const blockX = Math.floor(point.x + normal.x * 0.5);
-        const blockY = Math.floor(point.y + normal.y * 0.5);
-        const blockZ = Math.floor(point.z + normal.z * 0.5);
+        const { blockX, blockY, blockZ } = getBlockPos(point, normal, 1);
 
         const overlapsWithAnyPlayer = [
           {
@@ -63,15 +61,7 @@ export function initRaycast(
           },
           ...connection.getRemotePlayerPositions(),
         ].some(({ position, width, height }) => {
-          const hw = width / 2;
-          return (
-            blockX < position.x + hw &&
-            blockX + 1 > position.x - hw &&
-            blockY < position.y + height &&
-            blockY + 1 > position.y &&
-            blockZ < position.z + hw &&
-            blockZ + 1 > position.z - hw
-          );
+          return overlapsBlock(position, width, height, blockX, blockY, blockZ);
         });
 
         if (!overlapsWithAnyPlayer) {
@@ -86,4 +76,35 @@ export function initRaycast(
       }
     }
   });
+}
+
+function overlapsBlock(
+  position: THREE.Vector3,
+  width: number,
+  height: number,
+  bx: number,
+  by: number,
+  bz: number,
+): boolean {
+  const hw = width / 2;
+  return (
+    bx < position.x + hw &&
+    bx + 1 > position.x - hw &&
+    by < position.y + height &&
+    by + 1 > position.y &&
+    bz < position.z + hw &&
+    bz + 1 > position.z - hw
+  );
+}
+
+function getBlockPos(
+  point: THREE.Vector3,
+  normal: THREE.Vector3,
+  direction: 1 | -1,
+) {
+  return {
+    blockX: Math.floor(point.x + normal.x * 0.5 * direction),
+    blockY: Math.floor(point.y + normal.y * 0.5 * direction),
+    blockZ: Math.floor(point.z + normal.z * 0.5 * direction),
+  };
 }

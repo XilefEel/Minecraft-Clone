@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
+import { CONFIG } from "../config";
 
 const materials = [
   new THREE.MeshLambertMaterial({ color: 0xcc0000 }),
@@ -25,12 +26,12 @@ export class RemotePlayer {
   private targetYaw = 0;
   private currentYaw = 0;
 
-  readonly height = 1.8;
-  readonly width = 0.6;
+  readonly width = CONFIG.player.width;
+  readonly height = CONFIG.player.height;
 
   constructor(id: string, scene: THREE.Scene) {
     this.id = id;
-    const size = new THREE.BoxGeometry(0.6, 1.8, 0.6);
+    const size = new THREE.BoxGeometry(this.width, this.height, this.width);
     this.mesh = new THREE.Mesh(size, materials);
 
     const div = document.createElement("div");

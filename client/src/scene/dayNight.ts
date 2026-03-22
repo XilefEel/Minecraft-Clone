@@ -114,10 +114,8 @@ export function updateDayNight(
   sun.position.set(Math.cos(sunAngle) * 200, Math.sin(sunAngle) * 200, 50);
   const sunHeight = Math.sin(sunAngle);
 
-  // 0 = horizon, 1 = overhead
   const h = Math.max(0, sunHeight);
 
-  // warmer near horizon
   sun.color.setHSL(0.08, 0.8, 0.5 + h * 0.4);
 
   renderer.setClearColor(skyColor);
@@ -130,6 +128,7 @@ export function updateDayNight(
     400,
   );
 }
+
 export function getDayCounter(): number {
   return dayCounter;
 }

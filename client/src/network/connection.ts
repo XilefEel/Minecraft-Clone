@@ -88,7 +88,7 @@ export class Connection {
     switch (event.type) {
       case "Ready":
         console.log("server ready, starting chunk manager");
-        this.chunkManager.startUpdating();
+        this.chunkManager.start();
         break;
 
       // if received chunk data
@@ -97,7 +97,6 @@ export class Connection {
         chunk.blocks = new Uint8Array(event.blocks);
         world.addChunk(chunk);
         this.chunkManager.markReceived(event.cx, event.cz);
-
         break;
 
       // if a new player joined
@@ -131,7 +130,7 @@ export class Connection {
       // if a block is updated
       case "BlockUpdate":
         world.setBlock(event.x, event.y, event.z, event.block_id);
-        world.remeshWithWorldPos(event.x, event.z);
+        world.remeshAt(event.x, event.z);
         break;
 
       case "TimeUpdate":

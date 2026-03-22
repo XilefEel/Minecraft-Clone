@@ -25,7 +25,6 @@ export function notify(text: string) {
     `;
   container.appendChild(el);
 
-  // fade out after 3 seconds
   setTimeout(() => {
     el.style.opacity = "0";
     setTimeout(() => el.remove(), 1000);

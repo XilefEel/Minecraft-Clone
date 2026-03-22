@@ -60,7 +60,7 @@ export class World {
     return (x << 16) | (z & 0xffff);
   }
 
-  remeshWithWorldPos(x: number, z: number) {
+  remeshAt(x: number, z: number) {
     const cx = this.toChunkCoord(x);
     const cz = this.toChunkCoord(z);
     const chunk = this.chunkMap.get(this.getKey(cx, cz));
@@ -126,6 +126,17 @@ export class World {
       );
       if (neighbor) this.remeshChunk(neighbor);
     }
+  }
+
+  unloadChunk(x: number, z: number) {
+    const key = this.getKey(x, z);
+    const mesh = this.meshMap.get(key);
+    if (mesh) {
+      this.scene.remove(mesh);
+      mesh.geometry.dispose();
+      this.meshMap.delete(key);
+    }
+    this.chunkMap.delete(key);
   }
 
   getBlock(x: number, y: number, z: number): number {

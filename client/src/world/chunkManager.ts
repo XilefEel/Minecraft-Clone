@@ -1,19 +1,15 @@
-import * as THREE from "three";
 import { CHUNK_SIZE } from "./chunk";
 import { World } from "./world";
 
 export class ChunkManager {
   private world: World;
-  private scene: THREE.Scene;
-
   private requestedChunks = new Set<string>();
   private renderDistance: number;
 
   private ready = false;
 
-  constructor(world: World, scene: THREE.Scene, renderDistance: number) {
+  constructor(world: World, renderDistance: number) {
     this.world = world;
-    this.scene = scene;
     this.renderDistance = renderDistance;
   }
 
@@ -21,7 +17,7 @@ export class ChunkManager {
     return `${cx},${cz}`;
   }
 
-  startUpdating() {
+  start() {
     this.ready = true;
   }
 
@@ -61,14 +57,7 @@ export class ChunkManager {
     }
 
     for (const { x, z } of toUnload) {
-      const key = this.world.getKey(x, z);
-      const mesh = this.world.meshMap.get(key);
-      if (mesh) {
-        this.scene.remove(mesh);
-        mesh.geometry.dispose();
-      }
-      this.world.meshMap.delete(key);
-      this.world.chunkMap.delete(key);
+      this.world.unloadChunk(x, z);
       this.requestedChunks.delete(this.getKey(x, z));
     }
   }

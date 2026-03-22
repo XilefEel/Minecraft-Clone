@@ -2,13 +2,6 @@ import * as THREE from "three";
 import { CONFIG } from "../config";
 import { CSS2DRenderer } from "three/examples/jsm/Addons.js";
 
-const labelRendererStyle = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    pointer-events: none;
-  `;
-
 export function createScene() {
   const canvas = document.querySelector("#c") as HTMLCanvasElement;
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
@@ -17,7 +10,12 @@ export function createScene() {
 
   const labelRenderer = new CSS2DRenderer();
   labelRenderer.setSize(window.innerWidth, window.innerHeight);
-  labelRenderer.domElement.style.cssText = labelRendererStyle;
+  labelRenderer.domElement.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+    `;
   document.body.appendChild(labelRenderer.domElement);
 
   const scene = new THREE.Scene();
@@ -34,17 +32,17 @@ export function createScene() {
     CONFIG.camera.near,
     CONFIG.camera.far,
   );
-  camera.position.set(
-    CONFIG.camera.initialPos.x,
-    CONFIG.camera.initialPos.y,
-    CONFIG.camera.initialPos.z,
-  );
-  camera.lookAt(
-    CONFIG.camera.lookAt.x,
-    CONFIG.camera.lookAt.y,
-    CONFIG.camera.lookAt.z,
-  );
-  camera.rotation.order = "YXZ";
+  // camera.position.set(
+  //   CONFIG.camera.initialPos.x,
+  //   CONFIG.camera.initialPos.y,
+  //   CONFIG.camera.initialPos.z,
+  // );
+  // camera.lookAt(
+  //   CONFIG.camera.lookAt.x,
+  //   CONFIG.camera.lookAt.y,
+  //   CONFIG.camera.lookAt.z,
+  // );
+  // camera.rotation.order = "YXZ";
 
   return { canvas, renderer, scene, camera, labelRenderer };
 }

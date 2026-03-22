@@ -1,28 +1,18 @@
 import * as THREE from "three";
 import { CONFIG } from "./config";
 import { Connection } from "./network/connection";
-import { initPointerLock, initRaycast } from "./player/controls";
+import { initPointerLock, initBlockInteraction } from "./player/controls";
 import { initMovement } from "./player/movement";
 import { Player } from "./player/player";
 import { addLights } from "./scene/lights";
 import { createScene } from "./scene/scene";
 import "./style.css";
-import { worldToChunk, worldToLocal } from "./world/coordinates";
 import { World } from "./world/world";
 import { createHotbar } from "./ui/hotbar";
 import { ChunkManager } from "./world/chunkManager";
 import { addGUI } from "./ui/gui";
-import {
-  getDayCounter,
-  getDayTimeString,
-  updateDayNight,
-} from "./scene/dayNight";
-
-const worldCoords = document.getElementById("worldCoords")!;
-const chunkCoords = document.getElementById("chunkCoords")!;
-const localCoords = document.getElementById("localCoords")!;
-const day = document.getElementById("day")!;
-const time = document.getElementById("time")!;
+import { updateDayNight } from "./scene/dayNight";
+import { updateHUD } from "./ui/hud";
 
 let lastChunkUpdate = 0;
 
@@ -31,26 +21,23 @@ function main() {
   const { canvas, renderer, scene, camera, labelRenderer } = createScene();
 
   const world = new World(scene);
-  const chunkManager = new ChunkManager(
-    world,
-    scene,
-    CONFIG.world.renderDistance,
-  );
+  const chunkManager = new ChunkManager(world, CONFIG.world.renderDistance);
   const player = new Player(
-    CONFIG.camera.initialPos.x,
-    CONFIG.camera.initialPos.y,
-    CONFIG.camera.initialPos.z,
+    CONFIG.world.initialSpawn.x,
+    CONFIG.world.initialSpawn.y,
+    CONFIG.world.initialSpawn.z,
   );
 
+  const { sun, ambient } = addLights(scene);
   const connection = new Connection(player, world, chunkManager, scene);
 
   const movementControls = initMovement(world, player);
-  createHotbar();
-
   initPointerLock(canvas, player);
-  initRaycast(connection, scene, camera, player);
-  const { sun, ambient } = addLights(scene);
+  initBlockInteraction(connection, scene, camera, player);
+
+  createHotbar();
   addGUI(ambient, sun, camera, scene);
+
   // important
   function resizeDisplay(renderer: THREE.WebGLRenderer) {
     const canvas = renderer.domElement;
@@ -58,6 +45,7 @@ function main() {
     const height = canvas.clientHeight;
 
     const needResize = canvas.width !== width || canvas.height !== height;
+
     if (needResize) {
       renderer.setSize(width, height, false);
       labelRenderer.setSize(width, height);
@@ -81,7 +69,10 @@ function main() {
       });
       lastChunkUpdate = now;
     }
+
     updateDayNight(sun, ambient, scene, renderer);
+    updateHUD(player);
+    connection.updateRemotePlayers();
     movementControls();
 
     const camPos = player.getCameraPosition();
@@ -89,21 +80,6 @@ function main() {
     camera.rotation.order = "YXZ";
     camera.rotation.y = player.yaw;
     camera.rotation.x = player.pitch;
-
-    const { cx, cz } = worldToChunk(player.position.x, player.position.z);
-    const { lx, ly, lz } = worldToLocal(
-      player.position.x,
-      player.position.y,
-      player.position.z,
-    );
-
-    worldCoords.textContent = `World: ${player.position.x.toFixed(2)}, ${player.position.y.toFixed(2)}, ${player.position.z.toFixed(2)}`;
-    chunkCoords.textContent = `Chunk: ${cx}, ${cz}`;
-    localCoords.textContent = `Local: ${lx}, ${ly}, ${lz}`;
-    day.textContent = `Day: ${getDayCounter()}`;
-    time.textContent = `${getDayTimeString()}`;
-
-    connection.updateRemotePlayers();
 
     renderer.render(scene, camera);
     labelRenderer.render(scene, camera);

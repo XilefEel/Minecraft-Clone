@@ -9,8 +9,6 @@ export const CONFIG = {
     fov: 60,
     near: 0.1,
     far: 500,
-    initialPos: { x: 0, y: 100, z: 0 },
-    lookAt: { x: 0, y: 4, z: 0 },
   },
   lights: {
     ambientColor: 0xffffff,
@@ -21,12 +19,17 @@ export const CONFIG = {
   },
   player: {
     speed: 0.08,
+    sprintMultiplier: 2,
     gravity: -0.008,
     jumpStrength: 0.14,
     height: 1.8,
+    width: 0.6,
+    eyeHeight: 1.6,
+    sensitivity: 0.0025,
   },
   world: {
     renderDistance: 8,
     dayDuration: 600_000, // milliseconds for a full day cycle
+    initialSpawn: { x: 0, y: 100, z: 0 },
   },
 };
