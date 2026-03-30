@@ -18,6 +18,21 @@ import { initChat } from "./ui/chat";
 let lastChunkUpdate = 0;
 
 function main() {
+  const titleScreen = document.getElementById("title-screen")!;
+  const playBtn = document.getElementById("play-btn")!;
+  const ipInput = document.getElementById("ip-input") as HTMLInputElement;
+
+  playBtn.addEventListener("click", () => {
+    const ip = ipInput.value.trim() || "localhost:3000";
+    titleScreen.style.display = "none";
+    startGame(ip);
+  });
+}
+
+function startGame(ip: string) {
+  document.getElementById("hud")!.style.display = "block";
+  document.getElementById("crosshair")!.style.display = "block";
+  document.getElementById("chat")!.style.display = "block";
   // setup
   const { canvas, renderer, scene, camera, labelRenderer } = createScene();
 
@@ -30,7 +45,7 @@ function main() {
   );
 
   const { sun, ambient } = addLights(scene);
-  const connection = new Connection(player, world, chunkManager, scene);
+  const connection = new Connection(ip, player, world, chunkManager, scene);
 
   const movementControls = initMovement(world, player);
   initPointerLock(canvas, player);

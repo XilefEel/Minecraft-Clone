@@ -43,13 +43,14 @@ export class Connection {
   private lastSentYaw = 0;
 
   constructor(
+    ip: string,
     player: Player,
     world: World,
     chunkManager: ChunkManager,
     scene: THREE.Scene,
   ) {
     this.chunkManager = chunkManager;
-    this.ws = new WebSocket("ws://localhost:3000/ws");
+    this.ws = new WebSocket(`ws://${ip}/ws`);
     this.ws.binaryType = "arraybuffer";
 
     this.ws.onopen = () => {

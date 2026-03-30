@@ -9,6 +9,7 @@ export function addGUI(
   scene: THREE.Scene,
 ) {
   const gui = new GUI();
+  console.log(scene);
 
   const lightFolder = gui.addFolder("Lighting");
   lightFolder.add(ambient, "intensity", 0, 20).name("Ambient Intensity");

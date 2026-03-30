@@ -1,9 +1,9 @@
 import type { Player } from "../player/player";
 import { getDayCounter, getDayTimeString } from "../scene/dayNight";
 import { worldToChunk, worldToLocal } from "../world/coordinates";
-const worldCoords = document.getElementById("worldCoords")!;
-const chunkCoords = document.getElementById("chunkCoords")!;
-const localCoords = document.getElementById("localCoords")!;
+const worldCoords = document.getElementById("world-coords")!;
+const chunkCoords = document.getElementById("chunk-coords")!;
+const localCoords = document.getElementById("local-coords")!;
 const day = document.getElementById("day")!;
 const time = document.getElementById("time")!;
 
