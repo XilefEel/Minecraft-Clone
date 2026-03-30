@@ -21,6 +21,7 @@ async fn register_player(state: &SharedState, id: &str) {
     state.players.insert(
         id.to_string(),
         PlayerState {
+            username: "Player".to_string(),
             x: 0.0,
             y: 0.0,
             z: 0.0,
@@ -29,13 +30,11 @@ async fn register_player(state: &SharedState, id: &str) {
     );
 }
 
-async fn notify_player_joined(state: &SharedState, id: &str) {
-    println!("Player {} joined!", id);
-
-    let state = state.read().await;
-    let _ = state
-        .tx
-        .send(ServerEvent::PlayerJoined { id: id.to_string() });
+async fn set_player_username(state: &SharedState, id: &str, username: &str) {
+    let mut state = state.write().await;
+    if let Some(player) = state.players.get_mut(id) {
+        player.username = username.to_string();
+    }
 }
 
 async fn sync_existing_players(socket: &mut WebSocket, state: &SharedState, id: &str) {
@@ -44,27 +43,44 @@ async fn sync_existing_players(socket: &mut WebSocket, state: &SharedState, id: 
         if existing_id == id {
             continue;
         }
-        let msg = ServerEvent::PlayerPosition {
+
+        let sync = ServerEvent::PlayerSync {
+            id: existing_id.clone(),
+            username: player.username.clone(),
+        };
+
+        send_event(socket, sync).await.unwrap();
+
+        let pos = ServerEvent::PlayerPosition {
             id: existing_id.clone(),
             x: player.x,
             y: player.y,
             z: player.z,
             yaw: player.yaw,
         };
-        let bytes = rmp_serde::to_vec_named(&msg).unwrap();
-        let _ = socket.send(Message::Binary(bytes.into())).await;
+
+        send_event(socket, pos).await.unwrap();
     }
 }
 
 async fn disconnect_player(state: &SharedState, id: &str) {
     println!("Player {} left!", id);
 
+    let username = {
+        let state = state.read().await;
+        state
+            .players
+            .get(id)
+            .map(|p| p.username.clone())
+            .unwrap_or("Unknown".to_string())
+    };
+
     state.write().await.players.remove(id);
-    let _ = state
-        .read()
-        .await
-        .tx
-        .send(ServerEvent::PlayerLeft { id: id.to_string() });
+
+    let _ = state.read().await.tx.send(ServerEvent::PlayerLeft {
+        id: id.to_string(),
+        username,
+    });
 }
 
 async fn stream_chunks(
@@ -114,7 +130,24 @@ async fn process_client_event(
     id: &str,
 ) -> Option<ServerEvent> {
     match msg {
-        ClientEvent::Ready => None,
+        // when a player joins
+        ClientEvent::Join { username } => {
+            println!("Player {} joined as {}", id, username);
+
+            {
+                let mut state = state.write().await;
+                if let Some(player) = state.players.get_mut(id) {
+                    player.username = username.clone();
+                }
+            }
+
+            let state = state.read().await;
+            let _ = state.tx.send(ServerEvent::PlayerJoined {
+                id: id.to_string(),
+                username,
+            });
+            None
+        }
 
         // when a player moves
         ClientEvent::Move { x, y, z, yaw } => {
@@ -137,15 +170,18 @@ async fn process_client_event(
             });
             None
         }
+
         // when a player breaks a block
         ClientEvent::BlockBreak { x, y, z } => {
             {
                 let mut state = state.write().await;
                 let cx = x.div_euclid(CHUNK_SIZE);
                 let cz = z.div_euclid(CHUNK_SIZE);
+
                 let lx = x.rem_euclid(CHUNK_SIZE);
                 let ly = y;
                 let lz = z.rem_euclid(CHUNK_SIZE);
+
                 if let Some(chunk) = state.world.get_mut(&(cx, cz)) {
                     chunk.set_block(lx, ly, lz, 0);
                 }
@@ -211,10 +247,19 @@ async fn process_client_event(
 
         // when a player sends a chat message
         ClientEvent::ChatMessage { message } => {
-            let _ = state.read().await.tx.send(ServerEvent::ChatMessage {
-                player_id: id.to_string(),
-                message,
-            });
+            let username = state
+                .read()
+                .await
+                .players
+                .get(id)
+                .map(|p| p.username.clone())
+                .unwrap_or_default();
+
+            let _ = state
+                .read()
+                .await
+                .tx
+                .send(ServerEvent::ChatMessage { username, message });
             None
         }
     }
@@ -223,7 +268,7 @@ async fn process_client_event(
 fn is_own_event(event: &ServerEvent, id: &str) -> bool {
     match event {
         ServerEvent::PlayerPosition { id: sender_id, .. } => sender_id == id,
-        ServerEvent::PlayerJoined { id: sender_id } => sender_id == id,
+        ServerEvent::PlayerJoined { id: sender_id, .. } => sender_id == id,
         _ => false,
     }
 }
@@ -267,14 +312,20 @@ pub async fn handle_socket(mut socket: WebSocket, state: SharedState) {
     let mut rx = state.read().await.tx.subscribe();
 
     if let Some(Ok(Message::Binary(data))) = socket.recv().await {
-        if let Ok(ClientEvent::Ready) = from_slice::<ClientEvent>(&data) {
+        if let Ok(ClientEvent::Join { username }) = from_slice::<ClientEvent>(&data) {
             let _ = stream_chunks(&mut socket, &state, 0, 0, 4).await;
 
             let time = state.read().await.get_world_time();
             let _ = send_event(&mut socket, ServerEvent::TimeUpdate { time }).await;
 
             register_player(&state, &id).await;
-            notify_player_joined(&state, &id).await;
+
+            set_player_username(&state, &id, &username).await;
+            let _ = state.read().await.tx.send(ServerEvent::PlayerJoined {
+                id: id.to_string(),
+                username,
+            });
+
             sync_existing_players(&mut socket, &state, &id).await;
 
             let _ = send_event(&mut socket, ServerEvent::Ready).await;

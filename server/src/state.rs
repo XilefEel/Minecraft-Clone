@@ -9,6 +9,7 @@ use tokio::sync::broadcast;
 const SPAWN_CHUNKS: i32 = 16;
 
 pub struct PlayerState {
+    pub username: String,
     pub x: f64,
     pub y: f64,
     pub z: f64,

@@ -9,11 +9,17 @@ pub enum ServerEvent {
         cz: i32,
         blocks: Vec<u8>,
     },
+    PlayerSync {
+        id: String,
+        username: String,
+    },
     PlayerJoined {
         id: String,
+        username: String,
     },
     PlayerLeft {
         id: String,
+        username: String,
     },
     PlayerPosition {
         id: String,
@@ -32,7 +38,7 @@ pub enum ServerEvent {
         time: f64,
     },
     ChatMessage {
-        player_id: String,
+        username: String,
         message: String,
     },
 }
@@ -40,7 +46,9 @@ pub enum ServerEvent {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "type")]
 pub enum ClientEvent {
-    Ready,
+    Join {
+        username: String,
+    },
     Move {
         x: f64,
         y: f64,

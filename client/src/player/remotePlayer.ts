@@ -20,7 +20,9 @@ function lerpAngle(current: number, target: number, t: number): number {
 
 export class RemotePlayer {
   id: string;
+  username: string;
   mesh: THREE.Mesh;
+
   private nameTag: CSS2DObject;
   private targetPosition = new THREE.Vector3();
   private targetYaw = 0;
@@ -29,13 +31,15 @@ export class RemotePlayer {
   readonly width = CONFIG.player.width;
   readonly height = CONFIG.player.height;
 
-  constructor(id: string, scene: THREE.Scene) {
+  constructor(id: string, username: string, scene: THREE.Scene) {
     this.id = id;
+    this.username = username;
+
     const size = new THREE.BoxGeometry(this.width, this.height, this.width);
     this.mesh = new THREE.Mesh(size, materials);
 
     const div = document.createElement("div");
-    div.textContent = id.slice(0, 8);
+    div.textContent = username;
     div.style.cssText = `
           color: white;
           font-size: 16px;

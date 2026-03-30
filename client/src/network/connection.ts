@@ -11,8 +11,9 @@ import type { ChunkManager } from "../world/chunkManager";
 export type ServerEvent =
   | { type: "Ready" }
   | { type: "ChunkData"; cx: number; cz: number; blocks: number[] }
-  | { type: "PlayerJoined"; id: string }
-  | { type: "PlayerLeft"; id: string }
+  | { type: "PlayerSync"; id: string; username: string }
+  | { type: "PlayerJoined"; id: string; username: string }
+  | { type: "PlayerLeft"; id: string; username: string }
   | {
       type: "PlayerPosition";
       id: string;
@@ -23,10 +24,10 @@ export type ServerEvent =
     }
   | { type: "BlockUpdate"; x: number; y: number; z: number; block_id: number }
   | { type: "TimeUpdate"; time: number }
-  | { type: "ChatMessage"; player_id: string; message: string };
+  | { type: "ChatMessage"; username: string; message: string };
 
 export type ClientEvent =
-  | { type: "Ready" }
+  | { type: "Join"; username: string }
   | { type: "Move"; x: number; y: number; z: number; yaw: number }
   | { type: "BlockBreak"; x: number; y: number; z: number }
   | { type: "BlockPlace"; x: number; y: number; z: number; block_id: number }
@@ -44,6 +45,7 @@ export class Connection {
 
   constructor(
     ip: string,
+    username: string,
     player: Player,
     world: World,
     chunkManager: ChunkManager,
@@ -54,9 +56,9 @@ export class Connection {
     this.ws.binaryType = "arraybuffer";
 
     this.ws.onopen = () => {
-      console.log("connected to server");
-      this.sendEvent({ type: "Ready" });
+      this.sendEvent({ type: "Join", username });
     };
+
     this.ws.onclose = () => console.log("disconnected from server");
 
     this.ws.onmessage = (e) => {
@@ -102,28 +104,32 @@ export class Connection {
         this.chunkManager.markReceived(event.cx, event.cz);
         break;
 
+      // for syncing existing players when joining
+      case "PlayerSync":
+        this.remotePlayersMap.set(
+          event.id,
+          new RemotePlayer(event.id, event.username, scene),
+        );
+        break;
+
       // if a new player joined
       case "PlayerJoined":
-        this.remotePlayersMap.set(event.id, new RemotePlayer(event.id, scene));
-        sendChat(`${event.id.slice(0, 8)} joined the game`);
+        this.remotePlayersMap.set(
+          event.id,
+          new RemotePlayer(event.id, event.username, scene),
+        );
+        sendChat(`${event.username} joined the game`);
         break;
 
       // if a player left
       case "PlayerLeft":
         this.remotePlayersMap.get(event.id)?.remove(scene);
         this.remotePlayersMap.delete(event.id);
-        sendChat(`${event.id.slice(0, 8)} left the game`);
+        sendChat(`${event.username} left the game`);
         break;
 
       // if a player position changes
       case "PlayerPosition":
-        if (!this.remotePlayersMap.has(event.id)) {
-          this.remotePlayersMap.set(
-            event.id,
-            new RemotePlayer(event.id, scene),
-          );
-        }
-
         this.remotePlayersMap
           .get(event.id)
           ?.onServerUpdate(event.x, event.y, event.z, event.yaw);
@@ -141,7 +147,7 @@ export class Connection {
         break;
 
       case "ChatMessage":
-        sendChat(`${event.player_id.slice(0, 8)}: ${event.message}`);
+        sendChat(`${event.username}: ${event.message}`);
         break;
     }
   }

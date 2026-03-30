@@ -36,6 +36,7 @@ canvas {
     width: 300px;
 }
 
+#username-input,
 #ip-input {
     padding: 10px;
     font-size: 16px;
