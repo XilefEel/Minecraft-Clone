@@ -27,10 +27,22 @@ impl GameState {
     pub fn new() -> (Arc<RwLock<Self>>, broadcast::Sender<ServerEvent>) {
         let (tx, _) = broadcast::channel(100);
         let mut world = HashMap::new();
+        std::fs::create_dir_all("world").unwrap();
+
         for cx in -SPAWN_CHUNKS..=SPAWN_CHUNKS {
             for cz in -SPAWN_CHUNKS..=SPAWN_CHUNKS {
-                let mut chunk = Chunk::new();
-                chunk.fill_noise(cx, cz);
+                let path = format!("world/chunk_{}_{}.bin", cx, cz);
+
+                let chunk = if let Ok(data) = std::fs::read(&path) {
+                    Chunk {
+                        blocks: Arc::new(data),
+                    }
+                } else {
+                    let mut chunk = Chunk::new();
+                    chunk.fill_noise(cx, cz);
+                    chunk
+                };
+
                 world.insert((cx, cz), chunk);
             }
         }

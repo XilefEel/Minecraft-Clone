@@ -1,5 +1,6 @@
 use axum::extract::ws::{Message, WebSocket};
 use rmp_serde::from_slice;
+use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::{
@@ -125,15 +126,13 @@ async fn stream_chunks(
 }
 
 async fn process_client_event(
-    msg: ClientEvent,
+    event: ClientEvent,
     state: &SharedState,
     id: &str,
 ) -> Option<ServerEvent> {
-    match msg {
+    match event {
         // when a player joins
         ClientEvent::Join { username } => {
-            println!("Player {} joined as {}", id, username);
-
             {
                 let mut state = state.write().await;
                 if let Some(player) = state.players.get_mut(id) {
@@ -146,6 +145,7 @@ async fn process_client_event(
                 id: id.to_string(),
                 username,
             });
+
             None
         }
 
@@ -160,6 +160,7 @@ async fn process_client_event(
                     player.yaw = yaw;
                 }
             }
+
             let state = state.read().await;
             let _ = state.tx.send(ServerEvent::PlayerPosition {
                 id: id.to_string(),
@@ -168,11 +169,13 @@ async fn process_client_event(
                 z,
                 yaw,
             });
+
             None
         }
 
         // when a player breaks a block
         ClientEvent::BlockBreak { x, y, z } => {
+            let blocks_to_save;
             {
                 let mut state = state.write().await;
                 let cx = x.div_euclid(CHUNK_SIZE);
@@ -182,9 +185,19 @@ async fn process_client_event(
                 let ly = y;
                 let lz = z.rem_euclid(CHUNK_SIZE);
 
-                if let Some(chunk) = state.world.get_mut(&(cx, cz)) {
+                blocks_to_save = if let Some(chunk) = state.world.get_mut(&(cx, cz)) {
                     chunk.set_block(lx, ly, lz, 0);
-                }
+                    Some((cx, cz, chunk.blocks.clone()))
+                } else {
+                    None
+                };
+            }
+
+            if let Some((cx, cz, blocks)) = blocks_to_save {
+                tokio::task::spawn_blocking(move || {
+                    std::fs::create_dir_all("world").unwrap();
+                    std::fs::write(format!("world/chunk_{}_{}.bin", cx, cz), &*blocks).unwrap();
+                });
             }
 
             let state = state.read().await;
@@ -194,26 +207,42 @@ async fn process_client_event(
                 z,
                 block_id: 0,
             });
+
             None
         }
 
         // when a player places a block
         ClientEvent::BlockPlace { x, y, z, block_id } => {
+            let blocks_to_save;
             {
                 let mut state = state.write().await;
                 let cx = x.div_euclid(CHUNK_SIZE);
                 let cz = z.div_euclid(CHUNK_SIZE);
+
                 let lx = x.rem_euclid(CHUNK_SIZE);
                 let ly = y;
                 let lz = z.rem_euclid(CHUNK_SIZE);
-                if let Some(chunk) = state.world.get_mut(&(cx, cz)) {
+
+                blocks_to_save = if let Some(chunk) = state.world.get_mut(&(cx, cz)) {
                     chunk.set_block(lx, ly, lz, block_id);
-                }
+                    Some((cx, cz, chunk.blocks.clone()))
+                } else {
+                    None
+                };
             }
+
+            if let Some((cx, cz, blocks)) = blocks_to_save {
+                tokio::task::spawn_blocking(move || {
+                    std::fs::create_dir_all("world").unwrap();
+                    std::fs::write(format!("world/chunk_{}_{}.bin", cx, cz), &*blocks).unwrap();
+                });
+            }
+
             let state = state.read().await;
             let _ = state
                 .tx
                 .send(ServerEvent::BlockUpdate { x, y, z, block_id });
+
             None
         }
 
@@ -221,13 +250,22 @@ async fn process_client_event(
         ClientEvent::RequestChunk { cx, cz } => {
             println!("Chunk requested: {}, {}", cx, cz);
             if !state.read().await.world.contains_key(&(cx, cz)) {
-                let blocks = tokio::task::spawn_blocking(move || {
-                    let mut chunk = Chunk::new();
-                    chunk.fill_noise(cx, cz);
-                    chunk.blocks
-                })
-                .await
-                .unwrap();
+                let path = format!("world/chunk_{}_{}.bin", cx, cz);
+
+                let blocks = if let Ok(data) = std::fs::read(&path) {
+                    Arc::new(data) // read from disk if it exists
+                } else {
+                    // create new chunk
+                    let blocks = tokio::task::spawn_blocking(move || {
+                        let mut chunk = Chunk::new();
+                        chunk.fill_noise(cx, cz);
+                        chunk.blocks
+                    })
+                    .await
+                    .unwrap();
+
+                    blocks
+                };
 
                 state
                     .write()
@@ -238,6 +276,7 @@ async fn process_client_event(
             }
 
             let blocks = state.read().await.world[&(cx, cz)].blocks.clone();
+
             Some(ServerEvent::ChunkData {
                 cx,
                 cz,
@@ -247,19 +286,17 @@ async fn process_client_event(
 
         // when a player sends a chat message
         ClientEvent::ChatMessage { message } => {
+            let state = state.read().await;
             let username = state
-                .read()
-                .await
                 .players
                 .get(id)
                 .map(|p| p.username.clone())
                 .unwrap_or_default();
 
             let _ = state
-                .read()
-                .await
                 .tx
                 .send(ServerEvent::ChatMessage { username, message });
+
             None
         }
     }
