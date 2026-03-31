@@ -18,6 +18,7 @@ export function updateHUD(player: Player) {
   worldCoords.textContent = `World: ${player.position.x.toFixed(2)}, ${player.position.y.toFixed(2)}, ${player.position.z.toFixed(2)}`;
   chunkCoords.textContent = `Chunk: ${cx}, ${cz}`;
   localCoords.textContent = `Local: ${lx}, ${ly}, ${lz}`;
+
   day.textContent = `Day: ${getDayCounter()}`;
   time.textContent = `${getDayTimeString()}`;
 }

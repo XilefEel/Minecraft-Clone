@@ -28,6 +28,12 @@ function main() {
   playBtn.addEventListener("click", () => {
     const ip = ipInput.value.trim() || "localhost:3000";
     const username = usernameInput.value.trim() || "Player";
+
+    if (username.length < 4) {
+      alert("Please enter a username with at least 4 characters.");
+      return;
+    }
+
     titleScreen.style.display = "none";
     startGame(ip, username);
   });
@@ -60,13 +66,12 @@ function startGame(ip: string, username: string) {
 
   const movementControls = initMovement(world, player);
   initPointerLock(canvas, player);
-  initBlockInteraction(connection, scene, camera, player);
+  initBlockInteraction(connection, scene, camera, player, world);
 
   createHotbar();
-  addGUI(ambient, sun, camera, scene);
+  addGUI(camera, scene);
   initChat(connection, canvas);
 
-  // important
   function resizeDisplay(renderer: THREE.WebGLRenderer) {
     const canvas = renderer.domElement;
     const width = canvas.clientWidth;

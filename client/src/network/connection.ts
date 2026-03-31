@@ -91,8 +91,8 @@ export class Connection {
 
   private handleEvent(event: ServerEvent, world: World, scene: THREE.Scene) {
     switch (event.type) {
+      // if server is ready, start requesting chunks
       case "Ready":
-        console.log("server ready, starting chunk manager");
         this.chunkManager.start();
         break;
 
@@ -132,7 +132,7 @@ export class Connection {
       case "PlayerPosition":
         this.remotePlayersMap
           .get(event.id)
-          ?.onServerUpdate(event.x, event.y, event.z, event.yaw);
+          ?.updatePosition(event.x, event.y, event.z, event.yaw);
 
         break;
 
@@ -142,10 +142,12 @@ export class Connection {
         world.remeshAt(event.x, event.z);
         break;
 
+      // sync server time
       case "TimeUpdate":
         receiveServerTime(event.time);
         break;
 
+      // if a chat message is received
       case "ChatMessage":
         sendChat(`${event.username}: ${event.message}`);
         break;

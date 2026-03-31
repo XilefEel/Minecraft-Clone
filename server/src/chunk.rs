@@ -88,6 +88,7 @@ impl Chunk {
                 }
             }
         }
+
         heights
     }
 

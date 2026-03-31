@@ -22,8 +22,10 @@ export function initMovement(world: World, player: Player) {
     right.crossVectors(direction, UP);
 
     let speed = CONFIG.player.speed;
+
+    // sprinting
     if (keys["ShiftLeft"]) {
-      speed *= 2; // sprinting
+      speed *= 2;
     }
 
     if (document.activeElement?.id !== "chat") {

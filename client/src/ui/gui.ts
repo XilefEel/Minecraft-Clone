@@ -1,19 +1,19 @@
 import * as THREE from "three";
 import { GUI } from "three/addons/libs/lil-gui.module.min.js";
-import { CONFIG } from "../config"; // Import your central config
+import { CONFIG } from "../config";
 
 export function addGUI(
-  ambient: THREE.AmbientLight,
-  sun: THREE.DirectionalLight,
+  // ambient: THREE.AmbientLight,
+  // sun: THREE.DirectionalLight,
   camera: THREE.PerspectiveCamera,
   scene: THREE.Scene,
 ) {
   const gui = new GUI();
   console.log(scene);
 
-  const lightFolder = gui.addFolder("Lighting");
-  lightFolder.add(ambient, "intensity", 0, 20).name("Ambient Intensity");
-  lightFolder.add(sun, "intensity", 0, 20).name("Sun Intensity");
+  // const lightFolder = gui.addFolder("Lighting");
+  // lightFolder.add(ambient, "intensity", 0, 20).name("Ambient Intensity");
+  // lightFolder.add(sun, "intensity", 0, 20).name("Sun Intensity");
 
   // lightFolder
   //   .add(CONFIG.lights.sunPos, "x", -100, 100)

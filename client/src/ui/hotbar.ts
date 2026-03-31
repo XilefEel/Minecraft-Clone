@@ -3,7 +3,7 @@ const BLOCKS = [
   { id: 2, name: "Stone", color: "#7d7d7d" },
   { id: 3, name: "Dirt", color: "#8b5e3c" },
   { id: 4, name: "Bedrock", color: "#2d2d2d" },
-  { id: 5, name: "Water", color: "#3d6fd4" },
+  // { id: 5, name: "Water", color: "#3d6fd4" },
   { id: 6, name: "Sand", color: "#d4bc7a" },
   { id: 7, name: "Snow", color: "#dce8e8" },
   { id: 8, name: "Log", color: "#6b4226" },

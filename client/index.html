@@ -11,8 +11,19 @@
         <div id="title-screen">
             <h1>Minecraft</h1>
             <div id="menu">
-                <input id="username-input" type="text" placeholder="Username" />
-                <input id="ip-input" type="text" placeholder="localhost:3000" />
+                <input
+                    id="username-input"
+                    minlength="4"
+                    maxlength="32"
+                    type="text"
+                    placeholder="Username"
+                />
+                <input
+                    id="ip-input"
+                    maxlength="32"
+                    type="text"
+                    placeholder="localhost:3000"
+                />
                 <button id="play-btn">Play</button>
             </div>
         </div>
@@ -26,7 +37,12 @@
             <div id="time"></div>
         </div>
         <div id="crosshair"></div>
-        <input id="chat" type="text" placeholder="Type a message..." />
+        <input
+            id="chat"
+            maxlength="255"
+            type="text"
+            placeholder="Type a message..."
+        />
         <script type="module" src="/src/main.ts"></script>
     </body>
 </html>

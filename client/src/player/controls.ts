@@ -3,6 +3,7 @@ import type { Player } from "./player";
 import { Connection } from "../network/connection";
 import { getSelectedBlock } from "../ui/hotbar";
 import { CONFIG } from "../config";
+import type { World } from "../world/world";
 
 export function initPointerLock(canvas: HTMLCanvasElement, player: Player) {
   canvas.addEventListener("click", () => {
@@ -23,6 +24,7 @@ export function initBlockInteraction(
   scene: THREE.Scene,
   camera: THREE.Camera,
   player: Player,
+  world: World,
 ) {
   const raycaster = new THREE.Raycaster();
   raycaster.far = 6;
@@ -40,18 +42,24 @@ export function initBlockInteraction(
       const normal = intersects[0].face!.normal!;
 
       if (e.button === 0) {
-        // left click — break
-        const { blockX, blockY, blockZ } = getBlockPos(point, normal, -1);
+        const { blockX, blockY, blockZ, isSolid } = getBlockPos(
+          point,
+          normal,
+          -1,
+          world,
+        );
 
         // send block break to server
-        connection.sendEvent({
-          type: "BlockBreak",
-          x: blockX,
-          y: blockY,
-          z: blockZ,
-        });
+        if (isSolid) {
+          connection.sendEvent({
+            type: "BlockBreak",
+            x: blockX,
+            y: blockY,
+            z: blockZ,
+          });
+        }
       } else if (e.button === 2) {
-        const { blockX, blockY, blockZ } = getBlockPos(point, normal, 1);
+        const { blockX, blockY, blockZ } = getBlockPos(point, normal, 1, world);
 
         const overlapsWithAnyPlayer = [
           {
@@ -101,10 +109,16 @@ function getBlockPos(
   point: THREE.Vector3,
   normal: THREE.Vector3,
   direction: 1 | -1,
+  world: World,
 ) {
+  const x = Math.floor(point.x + normal.x * 0.5 * direction);
+  const y = Math.floor(point.y + normal.y * 0.5 * direction);
+  const z = Math.floor(point.z + normal.z * 0.5 * direction);
+
   return {
-    blockX: Math.floor(point.x + normal.x * 0.5 * direction),
-    blockY: Math.floor(point.y + normal.y * 0.5 * direction),
-    blockZ: Math.floor(point.z + normal.z * 0.5 * direction),
+    blockX: x,
+    blockY: y,
+    blockZ: z,
+    isSolid: world.isSolid(x, y, z),
   };
 }

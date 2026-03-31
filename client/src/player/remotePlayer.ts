@@ -57,7 +57,7 @@ export class RemotePlayer {
     scene.add(this.mesh);
   }
 
-  onServerUpdate(x: number, y: number, z: number, yaw: number) {
+  updatePosition(x: number, y: number, z: number, yaw: number) {
     this.targetPosition.set(x, y + 0.9, z);
     this.targetYaw = yaw;
   }
