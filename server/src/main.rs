@@ -4,21 +4,52 @@ use axum::{
     response::IntoResponse,
     routing::get,
 };
+use clap::Parser;
 use tokio::net::TcpListener;
 
 use crate::{
+    cli::{Cli, Command},
     handler::handle_socket,
     state::{GameState, SharedState},
 };
 
 mod chunk;
+mod cli;
 mod handler;
 mod protocol;
 mod state;
+mod world_registry;
+
+use world_registry::{create, delete, list, load, rename};
 
 #[tokio::main]
 async fn main() {
-    let (shared_state, _) = GameState::new();
+    let cli = Cli::parse();
+
+    let (world_name, seed) = match cli.command {
+        Command::Create { world, seed } => {
+            create(&world, seed);
+            (world, seed)
+        }
+        Command::Load { world } => {
+            let seed = load(&world);
+            (world, seed)
+        }
+        Command::List => {
+            list();
+            std::process::exit(0);
+        }
+        Command::Delete { world } => {
+            delete(&world);
+            std::process::exit(0);
+        }
+        Command::Rename { old, new } => {
+            rename(&old, &new);
+            std::process::exit(0);
+        }
+    };
+
+    let (shared_state, _) = GameState::new(&world_name, seed);
 
     let app = Router::new()
         .route("/health", get(health))

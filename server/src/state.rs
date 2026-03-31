@@ -21,17 +21,21 @@ pub struct GameState {
     pub world: HashMap<(i32, i32), Chunk>,
     pub world_time: std::time::Instant,
     pub tx: broadcast::Sender<ServerEvent>,
+    pub world_name: String,
+    pub seed: u64,
 }
 
 impl GameState {
-    pub fn new() -> (Arc<RwLock<Self>>, broadcast::Sender<ServerEvent>) {
+    pub fn new(world_name: &str, seed: u64) -> (Arc<RwLock<Self>>, broadcast::Sender<ServerEvent>) {
         let (tx, _) = broadcast::channel(100);
         let mut world = HashMap::new();
-        std::fs::create_dir_all("world").unwrap();
+
+        let world_dir = format!("worlds/{}", world_name);
+        std::fs::create_dir_all(&world_dir).unwrap();
 
         for cx in -SPAWN_CHUNKS..=SPAWN_CHUNKS {
             for cz in -SPAWN_CHUNKS..=SPAWN_CHUNKS {
-                let path = format!("world/chunk_{}_{}.bin", cx, cz);
+                let path = format!("{}/chunk_{}_{}.bin", world_dir, cx, cz);
 
                 let chunk = if let Ok(data) = std::fs::read(&path) {
                     Chunk {
@@ -39,7 +43,7 @@ impl GameState {
                     }
                 } else {
                     let mut chunk = Chunk::new();
-                    chunk.fill_noise(cx, cz);
+                    chunk.fill_noise(cx, cz, seed);
                     chunk
                 };
 
@@ -52,6 +56,8 @@ impl GameState {
             world,
             world_time: std::time::Instant::now(),
             tx: tx.clone(),
+            world_name: world_name.to_string(),
+            seed,
         }));
 
         let state_clone = state.clone();

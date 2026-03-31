@@ -194,9 +194,10 @@ async fn process_client_event(
             }
 
             if let Some((cx, cz, blocks)) = blocks_to_save {
+                let world_dir = format!("worlds/{}", state.read().await.world_name);
                 tokio::task::spawn_blocking(move || {
-                    std::fs::create_dir_all("world").unwrap();
-                    std::fs::write(format!("world/chunk_{}_{}.bin", cx, cz), &*blocks).unwrap();
+                    std::fs::write(format!("{}/chunk_{}_{}.bin", world_dir, cx, cz), &*blocks)
+                        .unwrap();
                 });
             }
 
@@ -232,9 +233,10 @@ async fn process_client_event(
             }
 
             if let Some((cx, cz, blocks)) = blocks_to_save {
+                let world_dir = format!("worlds/{}", state.read().await.world_name);
                 tokio::task::spawn_blocking(move || {
-                    std::fs::create_dir_all("world").unwrap();
-                    std::fs::write(format!("world/chunk_{}_{}.bin", cx, cz), &*blocks).unwrap();
+                    std::fs::write(format!("{}/chunk_{}_{}.bin", world_dir, cx, cz), &*blocks)
+                        .unwrap();
                 });
             }
 
@@ -250,15 +252,17 @@ async fn process_client_event(
         ClientEvent::RequestChunk { cx, cz } => {
             println!("Chunk requested: {}, {}", cx, cz);
             if !state.read().await.world.contains_key(&(cx, cz)) {
-                let path = format!("world/chunk_{}_{}.bin", cx, cz);
+                let world_dir = format!("worlds/{}", state.read().await.world_name);
+                let path = format!("{}/chunk_{}_{}.bin", world_dir, cx, cz);
 
                 let blocks = if let Ok(data) = std::fs::read(&path) {
                     Arc::new(data) // read from disk if it exists
                 } else {
                     // create new chunk
+                    let seed = state.read().await.seed;
                     let blocks = tokio::task::spawn_blocking(move || {
                         let mut chunk = Chunk::new();
-                        chunk.fill_noise(cx, cz);
+                        chunk.fill_noise(cx, cz, seed);
                         chunk.blocks
                     })
                     .await

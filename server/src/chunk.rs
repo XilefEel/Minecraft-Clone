@@ -27,8 +27,8 @@ impl Chunk {
         Arc::make_mut(&mut self.blocks)[index] = block;
     }
 
-    pub fn fill_noise(&mut self, cx: i32, cz: i32) {
-        let perlin = Perlin::new(67);
+    pub fn fill_noise(&mut self, cx: i32, cz: i32, seed: u64) {
+        let perlin = Perlin::new(seed as u32);
         let heights = self.generate_terrain(cx, cz, &perlin);
         self.generate_decorations(cx, cz, &perlin, &heights);
     }
