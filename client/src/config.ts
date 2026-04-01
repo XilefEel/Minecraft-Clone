@@ -28,7 +28,7 @@ export const CONFIG = {
     sensitivity: 0.0025,
   },
   world: {
-    renderDistance: 8,
+    renderDistance: 16,
     dayDuration: 600_000, // milliseconds for a full day cycle
     initialSpawn: { x: 0, y: 100, z: 0 },
   },

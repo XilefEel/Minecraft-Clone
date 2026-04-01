@@ -56,7 +56,7 @@ export function addGUI(
   // camFolder.add(camera, "far", 10, 5000).name("Far").onChange(updateCam);
 
   const playerFolder = gui.addFolder("Player Physics");
-  playerFolder.add(CONFIG.player, "speed", 0.01, 10).name("Walk Speed");
+  playerFolder.add(CONFIG.player, "speed", 0.01, 3).name("Walk Speed");
   playerFolder.add(CONFIG.player, "gravity", -0.05, 0, 0.001).name("Gravity");
   playerFolder.add(CONFIG.player, "jumpStrength", 0.01, 1).name("Jump Power");
   // playerFolder.add(CONFIG.player, "height", 1, 3).name("Player Height");

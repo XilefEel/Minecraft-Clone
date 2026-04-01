@@ -8,12 +8,21 @@ type Neighbors = {
   nz: Uint8Array | null;
 };
 
-function hexToRgb(hex: number): [number, number, number] {
-  return [
-    ((hex >> 16) & 0xff) / 255,
-    ((hex >> 8) & 0xff) / 255,
-    (hex & 0xff) / 255,
-  ];
+const BLOCK_RGB = new Float32Array(256 * 3);
+
+for (let id = 0; id < 256; id++) {
+  const hex = BLOCK_COLORS[id] ?? 0xff00ff;
+  BLOCK_RGB[id * 3 + 0] = ((hex >> 16) & 0xff) / 255;
+  BLOCK_RGB[id * 3 + 1] = ((hex >> 8) & 0xff) / 255;
+  BLOCK_RGB[id * 3 + 2] = (hex & 0xff) / 255;
+}
+
+// global masks for greedy meshing
+const Y_MASK = new Uint8Array(CHUNK_SIZE * CHUNK_SIZE);
+const XZ_MASK = new Uint8Array(CHUNK_SIZE * CHUNK_HEIGHT);
+
+function getIndex(x: number, y: number, z: number): number {
+  return x + y * CHUNK_SIZE + z * CHUNK_SIZE * CHUNK_HEIGHT;
 }
 
 function getBlockFromBlocks(
@@ -31,7 +40,8 @@ function getBlockFromBlocks(
     z >= CHUNK_SIZE
   )
     return 0;
-  return blocks[x + y * CHUNK_SIZE + z * CHUNK_SIZE * CHUNK_HEIGHT];
+
+  return blocks[getIndex(x, y, z)];
 }
 
 function getBlock(
@@ -42,6 +52,7 @@ function getBlock(
   z: number,
 ): number {
   if (y < 0 || y >= CHUNK_HEIGHT) return 0;
+
   if (x < 0)
     return neighbors.nx
       ? getBlockFromBlocks(neighbors.nx, CHUNK_SIZE + x, y, z)
@@ -50,6 +61,7 @@ function getBlock(
     return neighbors.px
       ? getBlockFromBlocks(neighbors.px, x - CHUNK_SIZE, y, z)
       : 0;
+
   if (z < 0)
     return neighbors.nz
       ? getBlockFromBlocks(neighbors.nz, x, y, CHUNK_SIZE + z)
@@ -59,10 +71,10 @@ function getBlock(
       ? getBlockFromBlocks(neighbors.pz, x, y, z - CHUNK_SIZE)
       : 0;
 
-  return getBlockFromBlocks(blocks, x, y, z);
+  return blocks[getIndex(x, y, z)];
 }
 
-function addFaces(
+function addFace(
   positions: number[],
   colors: number[],
   indices: number[],
@@ -70,12 +82,15 @@ function addFaces(
   block: number,
   direction: 1 | -1,
 ) {
-  const hex = BLOCK_COLORS[block] ?? 0xff00ff;
-  const [r, g, b] = hexToRgb(hex);
   const vi = positions.length / 3;
 
-  for (const [x, y, z] of corners) positions.push(x, y, z);
-  for (let i = 0; i < 4; i++) colors.push(r, g, b);
+  for (let i = 0; i < 4; i++) {
+    const [x, y, z] = corners[i];
+    positions.push(x, y, z);
+
+    const base = block * 3;
+    colors.push(BLOCK_RGB[base + 0], BLOCK_RGB[base + 1], BLOCK_RGB[base + 2]);
+  }
 
   if (direction === 1) {
     indices.push(vi, vi + 2, vi + 1, vi + 1, vi + 2, vi + 3);
@@ -94,19 +109,19 @@ function greedyYAxis(
   indices: number[],
   direction: 1 | -1,
 ) {
-  // for every y slice
   for (let y = 0; y < CHUNK_HEIGHT; y++) {
-    const mask: (number | null)[] = new Array(CHUNK_SIZE * CHUNK_SIZE).fill(
-      null,
-    );
+    // reuse mask
+    Y_MASK.fill(0);
 
-    // build the mask
+    // build mask
     for (let x = 0; x < CHUNK_SIZE; x++) {
       for (let z = 0; z < CHUNK_SIZE; z++) {
-        const block = getBlockFromBlocks(blocks, x, y, z);
+        const block = blocks[getIndex(x, y, z)];
+        if (block === 0) continue;
+
         const neighbor = getBlock(blocks, neighbors, x, y + direction, z);
-        if (block !== 0 && neighbor === 0) {
-          mask[x + z * CHUNK_SIZE] = block;
+        if (neighbor === 0) {
+          Y_MASK[x + z * CHUNK_SIZE] = block;
         }
       }
     }
@@ -114,31 +129,25 @@ function greedyYAxis(
     for (let z = 0; z < CHUNK_SIZE; z++) {
       let x = 0;
       while (x < CHUNK_SIZE) {
-        // the current block type
-        const block = mask[x + z * CHUNK_SIZE];
-        // skip if no block
-        if (block === null) {
+        const block = Y_MASK[x + z * CHUNK_SIZE];
+        if (block === 0) {
           x++;
           continue;
         }
 
-        // if block exists, find width and height of the face
-
-        // increase width while same block type
         let width = 1;
         while (
           x + width < CHUNK_SIZE &&
-          mask[x + width + z * CHUNK_SIZE] === block
+          Y_MASK[x + width + z * CHUNK_SIZE] === block
         ) {
           width++;
         }
 
-        // increase row height while same block type
         let height = 1;
         let done = false;
         while (z + height < CHUNK_SIZE && !done) {
           for (let k = 0; k < width; k++) {
-            if (mask[x + k + (z + height) * CHUNK_SIZE] !== block) {
+            if (Y_MASK[x + k + (z + height) * CHUNK_SIZE] !== block) {
               done = true;
               break;
             }
@@ -146,12 +155,11 @@ function greedyYAxis(
           if (!done) height++;
         }
 
-        // add face for the rectangle
         const wx = chunkX * CHUNK_SIZE + x;
         const wz = chunkZ * CHUNK_SIZE + z;
         const faceY = direction === 1 ? y + 1 : y;
 
-        addFaces(
+        addFace(
           positions,
           colors,
           indices,
@@ -165,14 +173,14 @@ function greedyYAxis(
           direction,
         );
 
-        // clear mask so we don't reuse blocks for other faces
+        // clear mask region
         for (let dz = 0; dz < height; dz++) {
+          const row = (z + dz) * CHUNK_SIZE;
           for (let dx = 0; dx < width; dx++) {
-            mask[x + dx + (z + dz) * CHUNK_SIZE] = null;
+            Y_MASK[x + dx + row] = 0;
           }
         }
 
-        // skip to the next unchecked block
         x += width;
       }
     }
@@ -190,16 +198,16 @@ function greedyXAxis(
   direction: 1 | -1,
 ) {
   for (let x = 0; x < CHUNK_SIZE; x++) {
-    const mask: (number | null)[] = new Array(CHUNK_SIZE * CHUNK_HEIGHT).fill(
-      null,
-    );
+    XZ_MASK.fill(0);
 
     for (let y = 0; y < CHUNK_HEIGHT; y++) {
       for (let z = 0; z < CHUNK_SIZE; z++) {
-        const block = getBlockFromBlocks(blocks, x, y, z);
+        const block = blocks[getIndex(x, y, z)];
+        if (block === 0) continue;
+
         const neighbor = getBlock(blocks, neighbors, x + direction, y, z);
-        if (block !== 0 && neighbor === 0) {
-          mask[z + y * CHUNK_SIZE] = block;
+        if (neighbor === 0) {
+          XZ_MASK[z + y * CHUNK_SIZE] = block;
         }
       }
     }
@@ -207,8 +215,8 @@ function greedyXAxis(
     for (let y = 0; y < CHUNK_HEIGHT; y++) {
       let z = 0;
       while (z < CHUNK_SIZE) {
-        const block = mask[z + y * CHUNK_SIZE];
-        if (block === null) {
+        const block = XZ_MASK[z + y * CHUNK_SIZE];
+        if (block === 0) {
           z++;
           continue;
         }
@@ -216,7 +224,7 @@ function greedyXAxis(
         let width = 1;
         while (
           z + width < CHUNK_SIZE &&
-          mask[z + width + y * CHUNK_SIZE] === block
+          XZ_MASK[z + width + y * CHUNK_SIZE] === block
         ) {
           width++;
         }
@@ -225,7 +233,7 @@ function greedyXAxis(
         let done = false;
         while (y + height < CHUNK_HEIGHT && !done) {
           for (let k = 0; k < width; k++) {
-            if (mask[z + k + (y + height) * CHUNK_SIZE] !== block) {
+            if (XZ_MASK[z + k + (y + height) * CHUNK_SIZE] !== block) {
               done = true;
               break;
             }
@@ -237,7 +245,7 @@ function greedyXAxis(
         const wz = chunkZ * CHUNK_SIZE + z;
         const faceX = direction === 1 ? wx + 1 : wx;
 
-        addFaces(
+        addFace(
           positions,
           colors,
           indices,
@@ -252,8 +260,9 @@ function greedyXAxis(
         );
 
         for (let dy = 0; dy < height; dy++) {
+          const row = (y + dy) * CHUNK_SIZE;
           for (let dz = 0; dz < width; dz++) {
-            mask[z + dz + (y + dy) * CHUNK_SIZE] = null;
+            XZ_MASK[z + dz + row] = 0;
           }
         }
 
@@ -274,16 +283,16 @@ function greedyZAxis(
   direction: 1 | -1,
 ) {
   for (let z = 0; z < CHUNK_SIZE; z++) {
-    const mask: (number | null)[] = new Array(CHUNK_SIZE * CHUNK_HEIGHT).fill(
-      null,
-    );
+    XZ_MASK.fill(0);
 
     for (let y = 0; y < CHUNK_HEIGHT; y++) {
       for (let x = 0; x < CHUNK_SIZE; x++) {
-        const block = getBlockFromBlocks(blocks, x, y, z);
+        const block = blocks[getIndex(x, y, z)];
+        if (block === 0) continue;
+
         const neighbor = getBlock(blocks, neighbors, x, y, z + direction);
-        if (block !== 0 && neighbor === 0) {
-          mask[x + y * CHUNK_SIZE] = block;
+        if (neighbor === 0) {
+          XZ_MASK[x + y * CHUNK_SIZE] = block;
         }
       }
     }
@@ -291,8 +300,8 @@ function greedyZAxis(
     for (let y = 0; y < CHUNK_HEIGHT; y++) {
       let x = 0;
       while (x < CHUNK_SIZE) {
-        const block = mask[x + y * CHUNK_SIZE];
-        if (block === null) {
+        const block = XZ_MASK[x + y * CHUNK_SIZE];
+        if (block === 0) {
           x++;
           continue;
         }
@@ -300,7 +309,7 @@ function greedyZAxis(
         let width = 1;
         while (
           x + width < CHUNK_SIZE &&
-          mask[x + width + y * CHUNK_SIZE] === block
+          XZ_MASK[x + width + y * CHUNK_SIZE] === block
         ) {
           width++;
         }
@@ -309,7 +318,7 @@ function greedyZAxis(
         let done = false;
         while (y + height < CHUNK_HEIGHT && !done) {
           for (let k = 0; k < width; k++) {
-            if (mask[x + k + (y + height) * CHUNK_SIZE] !== block) {
+            if (XZ_MASK[x + k + (y + height) * CHUNK_SIZE] !== block) {
               done = true;
               break;
             }
@@ -321,7 +330,7 @@ function greedyZAxis(
         const wz = chunkZ * CHUNK_SIZE + z;
         const faceZ = direction === 1 ? wz + 1 : wz;
 
-        addFaces(
+        addFace(
           positions,
           colors,
           indices,
@@ -336,8 +345,9 @@ function greedyZAxis(
         );
 
         for (let dy = 0; dy < height; dy++) {
+          const row = (y + dy) * CHUNK_SIZE;
           for (let dx = 0; dx < width; dx++) {
-            mask[x + dx + (y + dy) * CHUNK_SIZE] = null;
+            XZ_MASK[x + dx + row] = 0;
           }
         }
 
@@ -347,9 +357,13 @@ function greedyZAxis(
   }
 }
 
-// listen for messages from the main thread
 self.onmessage = (e) => {
-  const { blocks, chunkX, chunkZ, neighbors } = e.data;
+  const { blocks, chunkX, chunkZ, neighbors } = e.data as {
+    blocks: Uint8Array;
+    chunkX: number;
+    chunkZ: number;
+    neighbors: Neighbors;
+  };
 
   const positions: number[] = [];
   const colors: number[] = [];
