@@ -20,6 +20,7 @@ export class World {
     // listen for worker messages when done meshing
     this.worker.onmessage = (e) => {
       const { posArray, colArray, idxArray, chunkX, chunkZ } = e.data;
+      if (!this.chunkMap.has(this.getKey(chunkX, chunkZ))) return;
 
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute(

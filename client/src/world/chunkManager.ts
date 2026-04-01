@@ -1,3 +1,4 @@
+import * as THREE from "three";
 import { CHUNK_SIZE } from "./chunk";
 import { World } from "./world";
 
@@ -5,6 +6,9 @@ export class ChunkManager {
   private world: World;
   private requestedChunks = new Set<string>();
   private renderDistance: number;
+
+  private lastPlayerPos = new THREE.Vector2();
+  private playerSpeed = 0;
 
   private ready = false;
 
@@ -28,6 +32,14 @@ export class ChunkManager {
   ) {
     if (!this.ready) return;
 
+    const dx = playerX - this.lastPlayerPos.x;
+    const dz = playerZ - this.lastPlayerPos.y;
+    this.playerSpeed = Math.sqrt(dx * dx + dz * dz);
+    this.lastPlayerPos.set(playerX, playerZ);
+
+    // skip chunk requests if moving too fast
+    if (this.playerSpeed > 150) return; // tune this threshold
+
     const cx = Math.floor(playerX / CHUNK_SIZE);
     const cz = Math.floor(playerZ / CHUNK_SIZE);
 
@@ -46,8 +58,12 @@ export class ChunkManager {
         }
       }
     }
+  }
 
-    // unload distant chunks
+  unloadDistant(playerX: number, playerZ: number) {
+    const cx = Math.floor(playerX / CHUNK_SIZE);
+    const cz = Math.floor(playerZ / CHUNK_SIZE);
+
     const toUnload: { x: number; z: number }[] = [];
     for (const chunk of this.world.chunkMap.values()) {
       const dist = Math.sqrt((chunk.x - cx) ** 2 + (chunk.z - cz) ** 2);

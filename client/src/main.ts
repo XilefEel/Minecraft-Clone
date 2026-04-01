@@ -107,6 +107,7 @@ function startGame(ip: string, username: string) {
     updateHUD(player);
     connection.updateRemotePlayers();
     movementControls();
+    chunkManager.unloadDistant(player.position.x, player.position.z);
 
     const camPos = player.getCameraPosition();
     camera.position.copy(camPos);
