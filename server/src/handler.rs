@@ -27,6 +27,7 @@ async fn register_player(state: &SharedState, id: &str) {
             y: 0.0,
             z: 0.0,
             yaw: 0.0,
+            health: 20.0,
         },
     );
 }
@@ -303,6 +304,83 @@ async fn process_client_event(
 
             None
         }
+
+        // when a player is hit
+        ClientEvent::PlayerHit { target_id } => {
+            let (attacker_pos, target_pos, target_health) = {
+                let state = state.read().await;
+                let attacker = state.players.get(id)?;
+                let target = state.players.get(&target_id)?;
+
+                (
+                    (attacker.x, attacker.y, attacker.z),
+                    (target.x, target.y, target.z),
+                    target.health,
+                )
+            };
+
+            let new_health = (target_health - 1.0).max(0.0);
+            {
+                let mut state = state.write().await;
+                if let Some(target) = state.players.get_mut(&target_id) {
+                    target.health = new_health;
+                }
+            }
+
+            let dx = attacker_pos.0 - target_pos.0;
+            let dy = attacker_pos.1 - target_pos.1;
+            let dz = attacker_pos.2 - target_pos.2;
+            let dist = (dx * dx + dy * dy + dz * dz).sqrt();
+            if dist > 4.0 {
+                return None;
+            }
+
+            // calculate knockback direction
+            let len = (dx * dx + dz * dz).sqrt().max(0.001);
+            let (knx, knz) = (-dx / len, -dz / len);
+
+            let s = state.read().await;
+
+            // broadcast knockback to target
+            let _ = s.tx.send(ServerEvent::PlayerKnockback {
+                id: target_id.clone(),
+                dx: knx as f32,
+                dy: 0.3,
+                dz: knz as f32,
+            });
+
+            // broadcast health update
+            let _ = s.tx.send(ServerEvent::PlayerHealth {
+                id: target_id.clone(),
+                health: new_health as f32,
+            });
+
+            drop(s);
+
+            if new_health <= 0.0 {
+                {
+                    let mut state = state.write().await;
+                    if let Some(target) = state.players.get_mut(&target_id) {
+                        target.health = 20.0;
+                    }
+                }
+                let state = state.read().await;
+                let _ = state.tx.send(ServerEvent::PlayerDied {
+                    id: target_id.clone(),
+                    username: state
+                        .players
+                        .get(&target_id)
+                        .map(|p| p.username.clone())
+                        .unwrap_or_default(),
+                });
+                let _ = state.tx.send(ServerEvent::PlayerHealth {
+                    id: target_id.clone(),
+                    health: 20.0,
+                });
+            }
+
+            None
+        }
     }
 }
 
@@ -369,7 +447,7 @@ pub async fn handle_socket(mut socket: WebSocket, state: SharedState) {
 
             sync_existing_players(&mut socket, &state, &id).await;
 
-            let _ = send_event(&mut socket, ServerEvent::Ready).await;
+            let _ = send_event(&mut socket, ServerEvent::Ready { id: id.clone() }).await;
         }
     }
 

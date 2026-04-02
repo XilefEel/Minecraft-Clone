@@ -8,7 +8,7 @@ import { addLights } from "./scene/lights";
 import { createScene } from "./scene/scene";
 import "./style.css";
 import { World } from "./world/world";
-import { createHotbar } from "./ui/hotbar";
+import { createHealthBar, createHotbar } from "./ui/hotbar";
 import { ChunkManager } from "./world/chunkManager";
 import { addGUI } from "./ui/gui";
 import { updateDayNight } from "./scene/dayNight";
@@ -69,6 +69,8 @@ function startGame(ip: string, username: string) {
   initBlockInteraction(connection, scene, camera, player, world);
 
   createHotbar();
+  createHealthBar();
+
   addGUI(camera, scene);
   initChat(connection, canvas);
 

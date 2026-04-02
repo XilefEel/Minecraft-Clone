@@ -21,9 +21,12 @@ function lerpAngle(current: number, target: number, t: number): number {
 export class RemotePlayer {
   id: string;
   username: string;
+  health: number = 20;
   mesh: THREE.Mesh;
 
   private nameTag: CSS2DObject;
+  private healthBar: HTMLDivElement;
+
   private targetPosition = new THREE.Vector3();
   private targetYaw = 0;
   private currentYaw = 0;
@@ -34,12 +37,12 @@ export class RemotePlayer {
   constructor(id: string, username: string, scene: THREE.Scene) {
     this.id = id;
     this.username = username;
+    this.healthBar = document.createElement("div");
 
     const size = new THREE.BoxGeometry(this.width, this.height, this.width);
     this.mesh = new THREE.Mesh(size, materials);
 
     const div = document.createElement("div");
-    div.textContent = username;
     div.style.cssText = `
           color: white;
           font-size: 16px;
@@ -49,6 +52,15 @@ export class RemotePlayer {
           border-radius: 4px;
           pointer-events: none;
         `;
+
+    const name = document.createElement("div");
+    name.textContent = username;
+
+    this.healthBar.textContent = "20/20";
+    this.healthBar.style.cssText = `font-size: 16px; color: #e74c3c;`;
+
+    div.appendChild(this.healthBar);
+    div.appendChild(name);
 
     this.nameTag = new CSS2DObject(div);
     this.nameTag.position.set(0, 1, 0);
@@ -60,6 +72,11 @@ export class RemotePlayer {
   updatePosition(x: number, y: number, z: number, yaw: number) {
     this.targetPosition.set(x, y + 0.9, z);
     this.targetYaw = yaw;
+  }
+
+  updateHealth(health: number) {
+    this.health = health;
+    this.healthBar.textContent = `${health}/20`;
   }
 
   tick() {

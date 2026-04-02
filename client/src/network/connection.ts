@@ -9,7 +9,7 @@ import { receiveServerTime } from "../scene/dayNight";
 import type { ChunkManager } from "../world/chunkManager";
 
 export type ServerEvent =
-  | { type: "Ready" }
+  | { type: "Ready"; id: string }
   | { type: "ChunkData"; cx: number; cz: number; blocks: number[] }
   | { type: "PlayerSync"; id: string; username: string }
   | { type: "PlayerJoined"; id: string; username: string }
@@ -24,7 +24,10 @@ export type ServerEvent =
     }
   | { type: "BlockUpdate"; x: number; y: number; z: number; block_id: number }
   | { type: "TimeUpdate"; time: number }
-  | { type: "ChatMessage"; username: string; message: string };
+  | { type: "ChatMessage"; username: string; message: string }
+  | { type: "PlayerHealth"; id: string; health: number }
+  | { type: "PlayerDied"; id: string; username: string }
+  | { type: "PlayerKnockback"; id: string; dx: number; dy: number; dz: number };
 
 export type ClientEvent =
   | { type: "Join"; username: string }
@@ -32,12 +35,15 @@ export type ClientEvent =
   | { type: "BlockBreak"; x: number; y: number; z: number }
   | { type: "BlockPlace"; x: number; y: number; z: number; block_id: number }
   | { type: "RequestChunk"; cx: number; cz: number }
-  | { type: "ChatMessage"; message: string };
+  | { type: "ChatMessage"; message: string }
+  | { type: "PlayerHit"; target_id: string };
 
 export class Connection {
+  myId: string;
   chunkManager: ChunkManager;
 
   private ws: WebSocket;
+  private player: Player;
   private remotePlayersMap = new Map<string, RemotePlayer>();
 
   private lastSentPosition = new THREE.Vector3();
@@ -51,6 +57,8 @@ export class Connection {
     chunkManager: ChunkManager,
     scene: THREE.Scene,
   ) {
+    this.myId = "";
+    this.player = player;
     this.chunkManager = chunkManager;
     this.ws = new WebSocket(`ws://${ip}/ws`);
     this.ws.binaryType = "arraybuffer";
@@ -70,30 +78,12 @@ export class Connection {
     setInterval(() => this.sendPosition(player), 50);
   }
 
-  private sendPosition(player: Player) {
-    const positionChanged =
-      player.position.distanceTo(this.lastSentPosition) > 0.01;
-    const yawChanged = Math.abs(player.yaw - this.lastSentYaw) > 0.01;
-
-    if (!positionChanged && !yawChanged) return;
-
-    this.lastSentPosition.copy(player.position);
-    this.lastSentYaw = player.yaw;
-
-    this.sendEvent({
-      type: "Move",
-      x: player.position.x,
-      y: player.position.y,
-      z: player.position.z,
-      yaw: player.yaw,
-    });
-  }
-
   private handleEvent(event: ServerEvent, world: World, scene: THREE.Scene) {
     switch (event.type) {
       // if server is ready, start requesting chunks
       case "Ready":
         this.chunkManager.start();
+        this.myId = event.id;
         break;
 
       // if received chunk data
@@ -151,7 +141,55 @@ export class Connection {
       case "ChatMessage":
         sendChat(`${event.username}: ${event.message}`);
         break;
+
+      case "PlayerKnockback":
+        if (event.id === this.myId) {
+          this.player.knockback.x += event.dx * 0.2;
+          this.player.knockback.z += event.dz * 0.2;
+          this.player.velocity.y += 0.1;
+        }
+        break;
+
+      case "PlayerHealth":
+        if (event.id === this.myId) {
+          this.player.updateHealth(event.health);
+        } else {
+          this.remotePlayersMap.get(event.id)?.updateHealth(event.health);
+        }
+        break;
+
+      case "PlayerDied":
+        if (event.id === this.myId) {
+          sendChat(`${event.username} died.`);
+          this.player.position.set(0, 80, 0);
+          this.player.velocity.set(0, 0, 0);
+        }
+        break;
     }
+  }
+
+  private sendPosition(player: Player) {
+    const positionChanged =
+      player.position.distanceTo(this.lastSentPosition) > 0.01;
+    const yawChanged = Math.abs(player.yaw - this.lastSentYaw) > 0.01;
+
+    if (!positionChanged && !yawChanged) return;
+
+    this.lastSentPosition.copy(player.position);
+    this.lastSentYaw = player.yaw;
+
+    this.sendEvent({
+      type: "Move",
+      x: player.position.x,
+      y: player.position.y,
+      z: player.position.z,
+      yaw: player.yaw,
+    });
+  }
+
+  sendEvent(event: ClientEvent) {
+    if (this.ws.readyState !== WebSocket.OPEN) return;
+    this.ws.send(encode(event));
   }
 
   getRemotePlayerPositions(): {
@@ -166,12 +204,16 @@ export class Connection {
     }));
   }
 
-  updateRemotePlayers() {
-    this.remotePlayersMap.forEach((p) => p.tick());
+  getPlayerIdFromMesh(object: THREE.Object3D): string | null {
+    for (const [id, remotePlayer] of this.remotePlayersMap) {
+      if (remotePlayer.mesh === object) {
+        return id;
+      }
+    }
+    return null;
   }
 
-  sendEvent(event: ClientEvent) {
-    if (this.ws.readyState !== WebSocket.OPEN) return;
-    this.ws.send(encode(event));
+  updateRemotePlayers() {
+    this.remotePlayersMap.forEach((p) => p.tick());
   }
 }

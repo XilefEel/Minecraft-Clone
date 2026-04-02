@@ -3,7 +3,9 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type")]
 pub enum ServerEvent {
-    Ready,
+    Ready {
+        id: String,
+    },
     ChunkData {
         cx: i32,
         cz: i32,
@@ -41,6 +43,20 @@ pub enum ServerEvent {
         username: String,
         message: String,
     },
+    PlayerHealth {
+        id: String,
+        health: f32,
+    },
+    PlayerDied {
+        id: String,
+        username: String,
+    },
+    PlayerKnockback {
+        id: String,
+        dx: f32,
+        dy: f32,
+        dz: f32,
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -72,5 +88,8 @@ pub enum ClientEvent {
     },
     ChatMessage {
         message: String,
+    },
+    PlayerHit {
+        target_id: String,
     },
 }

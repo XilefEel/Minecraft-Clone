@@ -7,7 +7,7 @@ const BLOCKS = [
   { id: 6, name: "Sand", color: "#d4bc7a" },
   { id: 7, name: "Snow", color: "#dce8e8" },
   { id: 8, name: "Log", color: "#6b4226" },
-  { id: 9, name: "Leaves", color: "#2d6e1e" },
+  { id: 9, name: "Oak Leaves", color: "#2d6e1e" },
 ];
 
 let selectedBlock = 0;
@@ -73,4 +73,58 @@ export function createHotbar() {
 
 export function getSelectedBlock(): number {
   return BLOCKS[selectedBlock].id;
+}
+
+let healthBarFill: HTMLDivElement;
+let healthText: HTMLDivElement;
+
+export function createHealthBar() {
+  const container = document.createElement("div");
+  container.style.cssText = `
+    position: fixed;
+    bottom: 72px;
+    left: calc(50% - 220px);
+    pointer-events: none;
+  `;
+
+  healthText = document.createElement("div");
+  healthText.style.cssText = `
+    color: white;
+    font-family: monospace;
+    font-size: 14px;
+    margin-bottom: 4px;
+  `;
+  healthText.textContent = "20/20";
+
+  const healthBar = document.createElement("div");
+  healthBar.style.cssText = `
+    width: 200px;
+    height: 12px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 6px;
+    overflow: hidden;
+  `;
+
+  healthBarFill = document.createElement("div");
+  healthBarFill.style.cssText = `
+    width: 100%;
+    height: 100%;
+    background: #e74c3c;
+    border-radius: 6px;
+    transition: width 0.2s ease;
+  `;
+
+  healthBar.appendChild(healthBarFill);
+  container.appendChild(healthText);
+  container.appendChild(healthBar);
+  document.body.appendChild(container);
+}
+
+export function updateHealthBar(health: number) {
+  if (!healthBarFill) return;
+  const healthPercentage = (health / 20) * 100;
+
+  healthText.textContent = `${health}/20`;
+  healthBarFill.style.width = `${healthPercentage}%`;
+  healthBarFill.style.background = "#e74c3c";
 }

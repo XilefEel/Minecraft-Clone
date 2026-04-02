@@ -1,12 +1,18 @@
 import * as THREE from "three";
 import type { World } from "../world/world";
 import { CONFIG } from "../config";
+import { updateHealthBar } from "../ui/hotbar";
 
 export class Player {
+  health: number = 20;
+
   position: THREE.Vector3;
   velocity: THREE.Vector3;
+  knockback: THREE.Vector3 = new THREE.Vector3();
+
   yaw: number = 0;
   pitch: number = 0;
+
   isGrounded = false;
 
   readonly width = CONFIG.player.width;
@@ -85,5 +91,10 @@ export class Player {
     } else {
       this.isGrounded = false;
     }
+  }
+
+  updateHealth(health: number) {
+    this.health = health;
+    updateHealthBar(health);
   }
 }

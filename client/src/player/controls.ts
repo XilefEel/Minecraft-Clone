@@ -42,21 +42,29 @@ export function initBlockInteraction(
       const normal = intersects[0].face!.normal!;
 
       if (e.button === 0) {
-        const { blockX, blockY, blockZ, isSolid } = getBlockPos(
-          point,
-          normal,
-          -1,
-          world,
+        const hitPlayerId = connection.getPlayerIdFromMesh(
+          intersects[0].object,
         );
 
-        // send block break to server
-        if (isSolid) {
-          connection.sendEvent({
-            type: "BlockBreak",
-            x: blockX,
-            y: blockY,
-            z: blockZ,
-          });
+        if (hitPlayerId) {
+          connection.sendEvent({ type: "PlayerHit", target_id: hitPlayerId });
+        } else {
+          const { blockX, blockY, blockZ, isSolid } = getBlockPos(
+            point,
+            normal,
+            -1,
+            world,
+          );
+
+          // send block break to server
+          if (isSolid) {
+            connection.sendEvent({
+              type: "BlockBreak",
+              x: blockX,
+              y: blockY,
+              z: blockZ,
+            });
+          }
         }
       } else if (e.button === 2) {
         const { blockX, blockY, blockZ } = getBlockPos(point, normal, 1, world);

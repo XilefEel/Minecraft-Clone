@@ -40,8 +40,9 @@ export function initMovement(world: World, player: Player) {
       }
     }
 
-    player.velocity.x = moveVelocity.x;
-    player.velocity.z = moveVelocity.z;
+    player.velocity.x = moveVelocity.x + player.knockback.x;
+    player.velocity.z = moveVelocity.z + player.knockback.z;
+    player.knockback.multiplyScalar(0.9);
 
     // gravity
     player.velocity.y += CONFIG.player.gravity;
