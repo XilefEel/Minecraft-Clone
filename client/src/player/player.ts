@@ -20,6 +20,7 @@ export class Player {
   isGrounded = false;
   isSprinting = false;
   isSneaking = false;
+  isFlying = false;
 
   constructor(x: number, y: number, z: number) {
     this.position = new THREE.Vector3(x, y, z);

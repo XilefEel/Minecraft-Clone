@@ -13,22 +13,38 @@ export function initMovement(
   const direction = new THREE.Vector3();
   const right = new THREE.Vector3();
 
-  window.addEventListener("keydown", (e) => (keys[e.code] = true));
+  let lastSpacePress = 0;
+  const DOUBLE_TAP_WINDOW = 250;
+
+  window.addEventListener("keydown", (e) => {
+    if (e.repeat) return;
+
+    keys[e.code] = true;
+
+    // double-tap space to toggle flying
+    if (e.code === "Space") {
+      const now = Date.now();
+      if (now - lastSpacePress < DOUBLE_TAP_WINDOW) {
+        player.isFlying = !player.isFlying;
+      }
+      lastSpacePress = now;
+    }
+  });
+
   window.addEventListener("keyup", (e) => (keys[e.code] = false));
 
   const UP = new THREE.Vector3(0, 1, 0);
   const moveVelocity = new THREE.Vector3();
 
   return () => {
-    moveVelocity.set(0, 0, 0);
-
     direction.set(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
     right.crossVectors(direction, UP);
 
     const isMoving =
       keys["KeyW"] || keys["KeyS"] || keys["KeyA"] || keys["KeyD"];
 
-    const wantsToSneak = keys["ShiftLeft"] || keys["ShiftRight"];
+    const wantsToSneak =
+      (keys["ShiftLeft"] || keys["ShiftRight"]) && !player.isFlying;
 
     const wantsToSprint =
       (keys["ControlLeft"] || keys["ControlRight"]) &&
@@ -58,32 +74,42 @@ export function initMovement(
       height *= CONFIG.player.sneakHeightMultiplier;
     }
 
-    player.height += (height - player.height) * 0.2; // lerp
+    // lerp
+    player.height += (height - player.height) * 0.2;
     player.eyeHeight = player.height * 0.888;
 
-    camera.fov += (fov - camera.fov) * 0.1; // lerp
+    camera.fov += (fov - camera.fov) * 0.1;
     camera.updateProjectionMatrix();
 
     moveVelocity.set(0, 0, 0);
 
-    if (document.activeElement?.id !== "chat") {
+    const isChatFocused = document.activeElement?.id === "chat";
+
+    if (!isChatFocused) {
       if (keys["KeyW"]) moveVelocity.addScaledVector(direction, speed);
       if (keys["KeyS"]) moveVelocity.addScaledVector(direction, -speed);
       if (keys["KeyA"]) moveVelocity.addScaledVector(right, -speed);
       if (keys["KeyD"]) moveVelocity.addScaledVector(right, speed);
 
-      // jump
-      if (keys["Space"] && player.isGrounded) {
+      if (player.isFlying) {
+        player.velocity.y = 0;
+        if (keys["Space"]) player.velocity.y = speed;
+        if (keys["ShiftLeft"] || keys["ShiftRight"]) player.velocity.y = -speed;
+      } else if (keys["Space"] && player.isGrounded) {
         player.velocity.y = CONFIG.player.jumpStrength;
       }
+    }
+
+    // apply gravity
+    if (!player.isFlying) {
+      player.velocity.y += CONFIG.player.gravity;
+    } else if (isChatFocused) {
+      player.velocity.y = 0;
     }
 
     player.velocity.x = moveVelocity.x + player.knockback.x;
     player.velocity.z = moveVelocity.z + player.knockback.z;
     player.knockback.multiplyScalar(0.9);
-
-    // gravity
-    player.velocity.y += CONFIG.player.gravity;
 
     player.update(world);
   };
