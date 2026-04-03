@@ -64,7 +64,7 @@ function startGame(ip: string, username: string) {
     scene,
   );
 
-  const movementControls = initMovement(world, player);
+  const movementControls = initMovement(world, player, camera);
   initPointerLock(canvas, player);
   initBlockInteraction(connection, scene, camera, player, world);
 

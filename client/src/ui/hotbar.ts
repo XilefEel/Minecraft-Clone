@@ -93,6 +93,11 @@ export function createHealthBar() {
     font-family: monospace;
     font-size: 14px;
     margin-bottom: 4px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 6px;
+    padding: 0px 6px;
+    width: 40px;
+    text-align: center;
   `;
   healthText.textContent = "20/20";
 
@@ -126,5 +131,4 @@ export function updateHealthBar(health: number) {
 
   healthText.textContent = `${health}/20`;
   healthBarFill.style.width = `${healthPercentage}%`;
-  healthBarFill.style.background = "#e74c3c";
 }

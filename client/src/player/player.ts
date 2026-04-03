@@ -6,25 +6,27 @@ import { updateHealthBar } from "../ui/hotbar";
 export class Player {
   health: number = 20;
 
-  position: THREE.Vector3;
-  velocity: THREE.Vector3;
-  knockback: THREE.Vector3 = new THREE.Vector3();
+  width = CONFIG.player.width;
+  height = CONFIG.player.height;
+  eyeHeight = CONFIG.player.eyeHeight;
 
   yaw: number = 0;
   pitch: number = 0;
 
-  isGrounded = false;
+  position: THREE.Vector3;
+  velocity: THREE.Vector3;
+  knockback: THREE.Vector3 = new THREE.Vector3();
 
-  readonly width = CONFIG.player.width;
-  readonly height = CONFIG.player.height;
-  readonly eyeHeight = CONFIG.player.eyeHeight;
+  isGrounded = false;
+  isSprinting = false;
+  isSneaking = false;
 
   constructor(x: number, y: number, z: number) {
     this.position = new THREE.Vector3(x, y, z);
     this.velocity = new THREE.Vector3(0, 0, 0);
   }
 
-  private getSolidBlock(world: World): boolean {
+  private getSolidBlock(world: World) {
     const { min, max } = this.getBoundingBox();
 
     for (let x = Math.floor(min.x); x <= Math.floor(max.x); x++) {
@@ -62,6 +64,32 @@ export class Player {
         this.position.z + hw,
       ),
     };
+  }
+
+  canStand(world: World) {
+    const hw = this.width / 2;
+    const fullHeight = CONFIG.player.height;
+
+    const min = new THREE.Vector3(
+      this.position.x - hw,
+      this.position.y + this.height,
+      this.position.z - hw,
+    );
+    const max = new THREE.Vector3(
+      this.position.x + hw,
+      this.position.y + fullHeight,
+      this.position.z + hw,
+    );
+
+    for (let x = Math.floor(min.x); x <= Math.floor(max.x); x++) {
+      for (let y = Math.floor(min.y); y <= Math.floor(max.y); y++) {
+        for (let z = Math.floor(min.z); z <= Math.floor(max.z); z++) {
+          if (world.isSolid(x, y, z)) return false;
+        }
+      }
+    }
+
+    return true;
   }
 
   update(world: World) {

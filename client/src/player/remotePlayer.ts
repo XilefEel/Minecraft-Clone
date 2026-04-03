@@ -86,6 +86,8 @@ export class RemotePlayer {
   }
 
   remove(scene: THREE.Scene) {
+    this.mesh.remove(this.nameTag);
+    this.nameTag.element.remove();
     scene.remove(this.mesh);
     this.mesh.geometry.dispose();
   }

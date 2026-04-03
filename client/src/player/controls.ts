@@ -38,6 +38,7 @@ export function initBlockInteraction(
     const intersects = raycaster.intersectObjects(scene.children);
 
     if (intersects.length > 0) {
+      // left click
       const point = intersects[0].point;
       const normal = intersects[0].face!.normal!;
 
@@ -67,6 +68,7 @@ export function initBlockInteraction(
           }
         }
       } else if (e.button === 2) {
+        // right click
         const { blockX, blockY, blockZ } = getBlockPos(point, normal, 1, world);
 
         const overlapsWithAnyPlayer = [

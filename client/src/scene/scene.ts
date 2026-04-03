@@ -32,6 +32,7 @@ export function createScene() {
     CONFIG.camera.near,
     CONFIG.camera.far,
   );
+
   // camera.position.set(
   //   CONFIG.camera.initialPos.x,
   //   CONFIG.camera.initialPos.y,

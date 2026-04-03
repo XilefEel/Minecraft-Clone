@@ -19,7 +19,10 @@ export const CONFIG = {
   },
   player: {
     speed: 0.08,
-    sprintMultiplier: 2,
+    sprintSpeedMultiplier: 2,
+    sprintFovMultiplier: 1.25,
+    sneakSpeedMultiplier: 0.35,
+    sneakHeightMultiplier: 0.5,
     gravity: -0.008,
     jumpStrength: 0.14,
     height: 1.8,
