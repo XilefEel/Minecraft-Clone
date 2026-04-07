@@ -19,7 +19,8 @@ export const CONFIG = {
   },
   player: {
     speed: 0.08,
-    sprintSpeedMultiplier: 2,
+    flyingSpeed: 0.48,
+    sprintSpeedMultiplier: 1.5,
     sprintFovMultiplier: 1.25,
     sneakSpeedMultiplier: 0.35,
     sneakHeightMultiplier: 0.5,
@@ -31,7 +32,7 @@ export const CONFIG = {
     sensitivity: 0.0025,
   },
   world: {
-    renderDistance: 16,
+    renderDistance: 12,
     dayDuration: 600_000, // milliseconds for a full day cycle
     initialSpawn: { x: 0, y: 100, z: 0 },
   },

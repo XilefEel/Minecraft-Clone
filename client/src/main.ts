@@ -27,7 +27,7 @@ function main() {
 
   playBtn.addEventListener("click", () => {
     const ip = ipInput.value.trim() || "localhost:3000";
-    const username = usernameInput.value.trim() || "Player";
+    const username = usernameInput.value.trim();
 
     if (username.length < 4) {
       alert("Please enter a username with at least 4 characters.");
