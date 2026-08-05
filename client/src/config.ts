@@ -6,7 +6,6 @@ export const CONFIG = {
     fogFar: 200,
   },
   camera: {
-    fov: 60,
     near: 0.1,
     far: 500,
   },
@@ -18,6 +17,7 @@ export const CONFIG = {
     sunPos: { x: 50, y: 100, z: 50 },
   },
   player: {
+    baseFov: 75,
     speed: 0.08,
     flyingSpeed: 0.48,
     sprintSpeedMultiplier: 1.5,
@@ -33,7 +33,7 @@ export const CONFIG = {
   },
   world: {
     renderDistance: 12,
-    dayDuration: 600_000, // milliseconds for a full day cycle
+    dayDuration: 600000, // milliseconds
     initialSpawn: { x: 0, y: 100, z: 0 },
   },
 };

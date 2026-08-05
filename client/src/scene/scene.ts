@@ -27,7 +27,7 @@ export function createScene() {
   // );
 
   const camera = new THREE.PerspectiveCamera(
-    CONFIG.camera.fov,
+    CONFIG.player.baseFov,
     2,
     CONFIG.camera.near,
     CONFIG.camera.far,

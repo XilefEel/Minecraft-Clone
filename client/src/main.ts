@@ -43,7 +43,7 @@ function startGame(ip: string, username: string) {
   document.getElementById("hud")!.style.display = "block";
   document.getElementById("crosshair")!.style.display = "block";
   document.getElementById("chat")!.style.display = "block";
-  // setup
+
   const { canvas, renderer, scene, camera, labelRenderer } = createScene();
 
   const world = new World(scene);
@@ -71,7 +71,7 @@ function startGame(ip: string, username: string) {
   createHotbar();
   createHealthBar();
 
-  addGUI(camera, scene);
+  addGUI();
   initChat(connection, canvas);
 
   function resizeDisplay(renderer: THREE.WebGLRenderer) {
@@ -89,7 +89,6 @@ function startGame(ip: string, username: string) {
     return needResize;
   }
 
-  // render loop
   function render() {
     if (resizeDisplay(renderer)) {
       camera.aspect =

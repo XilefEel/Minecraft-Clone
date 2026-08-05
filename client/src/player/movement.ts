@@ -3,6 +3,18 @@ import type { World } from "../world/world";
 import { CONFIG } from "../config";
 import type { Player } from "./player";
 
+const gameKeys = [
+  "KeyW",
+  "KeyA",
+  "KeyS",
+  "KeyD",
+  "Space",
+  "ControlLeft",
+  "ControlRight",
+  "ShiftLeft",
+  "ShiftRight",
+];
+
 export function initMovement(
   world: World,
   player: Player,
@@ -20,18 +32,6 @@ export function initMovement(
   const DOUBLE_TAP_WINDOW = 250;
 
   let currentSpeed = CONFIG.player.speed;
-
-  const gameKeys = [
-    "KeyW",
-    "KeyA",
-    "KeyS",
-    "KeyD",
-    "Space",
-    "ControlLeft",
-    "ControlRight",
-    "ShiftLeft",
-    "ShiftRight",
-  ];
 
   window.addEventListener("keydown", (e) => {
     if (gameKeys.includes(e.code) && document.activeElement?.id !== "chat") {
@@ -82,7 +82,7 @@ export function initMovement(
       : CONFIG.player.speed;
 
     let height = CONFIG.player.height;
-    let fov = CONFIG.camera.fov;
+    let fov = CONFIG.player.baseFov;
 
     if (player.isSprinting) {
       speed *= CONFIG.player.sprintSpeedMultiplier;
@@ -92,7 +92,6 @@ export function initMovement(
       height *= CONFIG.player.sneakHeightMultiplier;
     }
 
-    // lerp
     player.height += (height - player.height) * 0.2;
     player.eyeHeight = player.height * 0.888;
 
