@@ -2,7 +2,6 @@ import * as THREE from "three";
 import { CONFIG } from "./config";
 import { Connection } from "./network/connection";
 import { initPointerLock, initBlockInteraction } from "./player/controls";
-import { initMovement } from "./player/movement";
 import { Player } from "./player/player";
 import { addLights } from "./scene/lights";
 import { createScene } from "./scene/scene";
@@ -14,6 +13,9 @@ import { addGUI } from "./ui/gui";
 import { updateDayNight } from "./scene/dayNight";
 import { updateHUD } from "./ui/hud";
 import { initChat } from "./ui/chat";
+import { InputHandler } from "./player/input";
+import { CameraController } from "./player/cameraController";
+import { MovementController } from "./player/movementController";
 
 let lastChunkUpdate = 0;
 let lastFrameTime = performance.now();
@@ -65,7 +67,9 @@ function startGame(ip: string, username: string) {
     scene,
   );
 
-  const movementControls = initMovement(world, player, camera);
+  const input = new InputHandler();
+  const movementController = new MovementController(world, player, input);
+  const cameraController = new CameraController(player, camera);
   initPointerLock(canvas, player);
   initBlockInteraction(connection, scene, camera, player, world);
 
@@ -111,7 +115,8 @@ function startGame(ip: string, username: string) {
     updateDayNight(sun, ambient, scene, renderer);
     updateHUD(player);
     connection.updateRemotePlayers();
-    movementControls(dt);
+    movementController.update(dt);
+    cameraController.update(dt);
     chunkManager.unloadDistant(player.position.x, player.position.z);
 
     const camPos = player.getCameraPosition();
