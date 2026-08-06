@@ -22,88 +22,124 @@ export class MovementController {
   }
 
   update(deltaTime: number) {
-    const player = this.player;
-    const input = this.input;
+    this.handleFlightToggle();
+    this.handleSneakState();
+    this.handleSprintState();
 
-    if (input.consumeSpaceDoubleTap()) {
-      player.isFlying = !player.isFlying;
+    const speed = this.calculateSpeed(deltaTime);
+
+    this.applyMovement(speed);
+    this.applyJumpAndFly(speed);
+    this.applyGravity(deltaTime);
+    this.applyKnockback(deltaTime);
+
+    this.player.update(this.world, deltaTime);
+  }
+
+  private handleFlightToggle() {
+    if (this.input.consumeSpaceDoubleTap()) {
+      this.player.isFlying = !this.player.isFlying;
     }
+  }
 
-    this.direction.set(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
-    this.right.crossVectors(this.direction, this.UP);
-
-    const isMoving =
-      input.isPressed("KeyW") ||
-      input.isPressed("KeyS") ||
-      input.isPressed("KeyA") ||
-      input.isPressed("KeyD");
-
-    const isChatFocused = input.isChatFocused();
-
+  private handleSneakState() {
     const wantsToSneak =
-      (input.isPressed("ShiftLeft") || input.isPressed("ShiftRight")) &&
-      !player.isFlying;
+      (this.input.isPressed("ShiftLeft") ||
+        this.input.isPressed("ShiftRight")) &&
+      !this.player.isFlying;
 
-    if (player.isSneaking && !wantsToSneak) {
-      if (player.canStand(this.world)) player.isSneaking = false;
+    if (this.player.isSneaking && !wantsToSneak) {
+      if (this.player.canStand(this.world)) this.player.isSneaking = false;
     } else {
-      player.isSneaking = wantsToSneak;
+      this.player.isSneaking = wantsToSneak;
     }
+  }
 
-    player.isSprinting =
-      (input.isPressed("ControlLeft") || input.isPressed("ControlRight")) &&
+  private handleSprintState() {
+    const isMoving =
+      this.input.isPressed("KeyW") ||
+      this.input.isPressed("KeyA") ||
+      this.input.isPressed("KeyS") ||
+      this.input.isPressed("KeyD");
+
+    this.player.isSprinting =
+      (this.input.isPressed("ControlLeft") ||
+        this.input.isPressed("ControlRight")) &&
       isMoving &&
-      !player.isSneaking;
+      !this.player.isSneaking;
+  }
 
-    let speed = player.isFlying
+  private calculateSpeed(dt: number): number {
+    let speed = this.player.isFlying
       ? CONFIG.player.flyingSpeed
       : CONFIG.player.speed;
 
-    if (player.isSprinting) {
+    if (this.player.isSprinting) {
       speed *= CONFIG.player.sprintSpeedMultiplier;
-    } else if (player.isSneaking) {
+    } else if (this.player.isSneaking) {
       speed *= CONFIG.player.sneakSpeedMultiplier;
     }
 
-    if (player.isFlying) {
-      const speedLerp = 1 - Math.exp(-6 * deltaTime);
+    if (this.player.isFlying) {
+      const speedLerp = 1 - Math.exp(-6 * dt);
       this.currentSpeed += (speed - this.currentSpeed) * speedLerp;
     } else {
       this.currentSpeed = speed;
     }
 
+    return this.currentSpeed;
+  }
+
+  private applyMovement(speed: number) {
+    this.direction.set(
+      -Math.sin(this.player.yaw),
+      0,
+      -Math.cos(this.player.yaw),
+    );
+    this.right.crossVectors(this.direction, this.UP);
+
     this.moveVelocity.set(0, 0, 0);
-    if (!isChatFocused) {
-      if (input.isPressed("KeyW")) this.moveVelocity.add(this.direction);
-      if (input.isPressed("KeyS")) this.moveVelocity.sub(this.direction);
-      if (input.isPressed("KeyA")) this.moveVelocity.sub(this.right);
-      if (input.isPressed("KeyD")) this.moveVelocity.add(this.right);
 
-      this.moveVelocity.normalize().multiplyScalar(this.currentSpeed);
+    if (this.input.isChatFocused()) return;
 
-      if (player.isFlying) {
-        player.velocity.y = 0;
-        if (input.isPressed("Space")) player.velocity.y = this.currentSpeed;
-        if (input.isPressed("ShiftLeft") || input.isPressed("ShiftRight"))
-          player.velocity.y = -this.currentSpeed;
-      } else if (input.isPressed("Space") && player.isGrounded) {
-        player.velocity.y = CONFIG.player.jumpStrength;
-      }
+    if (this.input.isPressed("KeyW")) this.moveVelocity.add(this.direction);
+    if (this.input.isPressed("KeyS")) this.moveVelocity.sub(this.direction);
+    if (this.input.isPressed("KeyA")) this.moveVelocity.sub(this.right);
+    if (this.input.isPressed("KeyD")) this.moveVelocity.add(this.right);
+
+    this.moveVelocity.normalize().multiplyScalar(speed);
+  }
+
+  private applyJumpAndFly(speed: number) {
+    if (this.input.isChatFocused()) return;
+
+    if (this.player.isFlying) {
+      this.player.velocity.y = 0;
+
+      const up = this.input.isPressed("Space");
+      const down =
+        this.input.isPressed("ShiftLeft") || this.input.isPressed("ShiftRight");
+
+      if (up && !down) this.player.velocity.y = speed;
+      if (down && !up) this.player.velocity.y = -speed;
+    } else if (this.input.isPressed("Space") && this.player.isGrounded) {
+      this.player.velocity.y = CONFIG.player.jumpStrength;
     }
+  }
 
-    // gravity
-    if (!player.isFlying) {
-      player.velocity.y += CONFIG.player.gravity * deltaTime;
-    } else if (isChatFocused) {
-      player.velocity.y = 0;
+  private applyGravity(deltaTime: number) {
+    if (!this.player.isFlying) {
+      this.player.velocity.y += CONFIG.player.gravity * deltaTime;
+    } else if (this.input.isChatFocused()) {
+      this.player.velocity.y = 0;
     }
+  }
 
-    player.velocity.x = this.moveVelocity.x + player.knockback.x;
-    player.velocity.z = this.moveVelocity.z + player.knockback.z;
+  private applyKnockback(deltaTime: number) {
+    this.player.velocity.x = this.moveVelocity.x + this.player.knockback.x;
+    this.player.velocity.z = this.moveVelocity.z + this.player.knockback.z;
 
     const knockbackDecay = Math.pow(0.1, deltaTime);
-    player.knockback.multiplyScalar(knockbackDecay);
-
-    player.update(this.world, deltaTime);
+    this.player.knockback.multiplyScalar(knockbackDecay);
   }
 }
