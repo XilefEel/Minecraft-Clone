@@ -93,26 +93,26 @@ export class Player {
     return true;
   }
 
-  update(world: World) {
+  update(world: World, deltaTime: number) {
     // X Axis
-    this.position.x += this.velocity.x;
+    this.position.x += this.velocity.x * deltaTime;
     if (this.getSolidBlock(world)) {
-      this.position.x -= this.velocity.x;
+      this.position.x -= this.velocity.x * deltaTime;
       this.velocity.x = 0;
     }
 
     // Z Axis
-    this.position.z += this.velocity.z;
+    this.position.z += this.velocity.z * deltaTime;
     if (this.getSolidBlock(world)) {
-      this.position.z -= this.velocity.z;
+      this.position.z -= this.velocity.z * deltaTime;
       this.velocity.z = 0;
     }
 
     // Y Axis
-    this.position.y += this.velocity.y;
+    this.position.y += this.velocity.y * deltaTime;
     const yCollision = this.getSolidBlock(world);
     if (yCollision) {
-      this.position.y -= this.velocity.y;
+      this.position.y -= this.velocity.y * deltaTime;
       if (this.velocity.y < 0) {
         this.isGrounded = true;
       }

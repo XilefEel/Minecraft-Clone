@@ -22,7 +22,6 @@ export function initMovement(
 ) {
   const keys: Record<string, boolean> = {};
 
-  // direction vectors
   const direction = new THREE.Vector3();
   const right = new THREE.Vector3();
   const UP = new THREE.Vector3(0, 1, 0);
@@ -54,7 +53,7 @@ export function initMovement(
 
   window.addEventListener("keyup", (e) => (keys[e.code] = false));
 
-  return () => {
+  return (deltaTime: number) => {
     direction.set(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
     right.crossVectors(direction, UP);
 
@@ -92,16 +91,19 @@ export function initMovement(
       height *= CONFIG.player.sneakHeightMultiplier;
     }
 
-    player.height += (height - player.height) * 0.2;
+    const heightLerp = 1 - Math.exp(-10 * deltaTime);
+    player.height += (height - player.height) * heightLerp;
     player.eyeHeight = player.height * 0.888;
 
     if (player.isFlying) {
-      currentSpeed += (speed - currentSpeed) * 0.1;
+      const speedLerp = 1 - Math.exp(-6 * deltaTime);
+      currentSpeed += (speed - currentSpeed) * speedLerp;
     } else {
       currentSpeed = speed;
     }
 
-    camera.fov += (fov - camera.fov) * 0.1;
+    const fovLerp = 1 - Math.exp(-6 * deltaTime);
+    camera.fov += (fov - camera.fov) * fovLerp;
     camera.updateProjectionMatrix();
 
     moveVelocity.set(0, 0, 0);
@@ -126,15 +128,17 @@ export function initMovement(
 
     // apply gravity
     if (!player.isFlying) {
-      player.velocity.y += CONFIG.player.gravity;
+      player.velocity.y += CONFIG.player.gravity * deltaTime;
     } else if (isChatFocused) {
       player.velocity.y = 0;
     }
 
     player.velocity.x = moveVelocity.x + player.knockback.x;
     player.velocity.z = moveVelocity.z + player.knockback.z;
-    player.knockback.multiplyScalar(0.9);
 
-    player.update(world);
+    const knockbackDecay = Math.pow(0.01, deltaTime);
+    player.knockback.multiplyScalar(knockbackDecay);
+
+    player.update(world, deltaTime);
   };
 }

@@ -16,6 +16,7 @@ import { updateHUD } from "./ui/hud";
 import { initChat } from "./ui/chat";
 
 let lastChunkUpdate = 0;
+let lastFrameTime = performance.now();
 
 function main() {
   const titleScreen = document.getElementById("title-screen")!;
@@ -97,6 +98,9 @@ function startGame(ip: string, username: string) {
     }
 
     const now = Date.now();
+    const dt = Math.min((now - lastFrameTime) / 1000, 0.1);
+    lastFrameTime = now;
+
     if (now - lastChunkUpdate > 1000) {
       chunkManager.update(player.position.x, player.position.z, (cx, cz) => {
         connection.sendEvent({ type: "RequestChunk", cx, cz });
@@ -107,7 +111,7 @@ function startGame(ip: string, username: string) {
     updateDayNight(sun, ambient, scene, renderer);
     updateHUD(player);
     connection.updateRemotePlayers();
-    movementControls();
+    movementControls(dt);
     chunkManager.unloadDistant(player.position.x, player.position.z);
 
     const camPos = player.getCameraPosition();

@@ -144,9 +144,9 @@ export class Connection {
 
       case "PlayerKnockback":
         if (event.id === this.myId) {
-          this.player.knockback.x += event.dx * 0.2;
-          this.player.knockback.z += event.dz * 0.2;
-          this.player.velocity.y += 0.1;
+          this.player.knockback.x += event.dx * 12;
+          this.player.knockback.z += event.dz * 12;
+          this.player.velocity.y += 6;
         }
         break;
 
