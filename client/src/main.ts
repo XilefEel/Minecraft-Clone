@@ -17,16 +17,25 @@ import { InputHandler } from "./player/input";
 import { CameraController } from "./player/cameraController";
 import { MovementController } from "./player/movementController";
 
-let lastChunkUpdate = 0;
-let lastFrameTime = performance.now();
+const CHUNK_UPDATE_INTERVAL_MS = 1000;
+const MAX_DELTA_TIME = 0.1;
 
 function main() {
-  const titleScreen = document.getElementById("title-screen")!;
-  const playBtn = document.getElementById("play-btn")!;
+  const titleScreen = document.getElementById("title-screen");
+  const playBtn = document.getElementById("play-btn");
+
   const usernameInput = document.getElementById(
     "username-input",
-  ) as HTMLInputElement;
-  const ipInput = document.getElementById("ip-input") as HTMLInputElement;
+  ) as HTMLInputElement | null;
+
+  const ipInput = document.getElementById(
+    "ip-input",
+  ) as HTMLInputElement | null;
+
+  if (!titleScreen || !playBtn || !usernameInput || !ipInput) {
+    console.error("Missing required HTML elements for the title screen.");
+    return;
+  }
 
   playBtn.addEventListener("click", () => {
     const ip = ipInput.value.trim() || "localhost:3000";
@@ -42,12 +51,40 @@ function main() {
   });
 }
 
+function showGameUI() {
+  const elements = ["hud", "crosshair", "chat"];
+  elements.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "block";
+  });
+}
+
+function setupResizeHandler(
+  renderer: THREE.WebGLRenderer,
+  camera: THREE.PerspectiveCamera,
+  labelRenderer: { setSize: (w: number, h: number) => void },
+) {
+  const onResize = () => {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+
+    renderer.setPixelRatio(2);
+    renderer.setSize(width, height);
+    labelRenderer.setSize(width, height);
+  };
+
+  window.addEventListener("resize", onResize);
+  onResize();
+}
+
 function startGame(ip: string, username: string) {
-  document.getElementById("hud")!.style.display = "block";
-  document.getElementById("crosshair")!.style.display = "block";
-  document.getElementById("chat")!.style.display = "block";
+  showGameUI();
 
   const { canvas, renderer, scene, camera, labelRenderer } = createScene();
+  setupResizeHandler(renderer, camera, labelRenderer);
 
   const world = new World(scene);
   const chunkManager = new ChunkManager(world, CONFIG.world.renderDistance);
@@ -70,42 +107,23 @@ function startGame(ip: string, username: string) {
   const input = new InputHandler();
   const movementController = new MovementController(world, player, input);
   const cameraController = new CameraController(player, camera);
+
   initPointerLock(canvas, player);
   initBlockInteraction(connection, scene, camera, player, world);
 
   createHotbar();
   createHealthBar();
-
   addGUI();
   initChat(connection, canvas);
 
-  function resizeDisplay(renderer: THREE.WebGLRenderer) {
-    const canvas = renderer.domElement;
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
+  let lastChunkUpdate = performance.now();
+  let lastFrameTime = performance.now();
 
-    const needResize = canvas.width !== width || canvas.height !== height;
-
-    if (needResize) {
-      renderer.setSize(width, height, false);
-      labelRenderer.setSize(width, height);
-    }
-
-    return needResize;
-  }
-
-  function render() {
-    if (resizeDisplay(renderer)) {
-      camera.aspect =
-        renderer.domElement.clientWidth / renderer.domElement.clientHeight;
-      camera.updateProjectionMatrix();
-    }
-
-    const now = Date.now();
-    const dt = Math.min((now - lastFrameTime) / 1000, 0.1);
+  function render(now: number) {
+    const dt = Math.min((now - lastFrameTime) / 1000, MAX_DELTA_TIME);
     lastFrameTime = now;
 
-    if (now - lastChunkUpdate > 1000) {
+    if (now - lastChunkUpdate > CHUNK_UPDATE_INTERVAL_MS) {
       chunkManager.update(player.position.x, player.position.z, (cx, cz) => {
         connection.sendEvent({ type: "RequestChunk", cx, cz });
       });
@@ -119,14 +137,9 @@ function startGame(ip: string, username: string) {
     cameraController.update(dt);
     chunkManager.unloadDistant(player.position.x, player.position.z);
 
-    const camPos = player.getCameraPosition();
-    camera.position.copy(camPos);
-    camera.rotation.order = "YXZ";
-    camera.rotation.y = player.yaw;
-    camera.rotation.x = player.pitch;
-
     renderer.render(scene, camera);
     labelRenderer.render(scene, camera);
+
     requestAnimationFrame(render);
   }
 
