@@ -7,6 +7,7 @@ import { RemotePlayer } from "../player/remotePlayer";
 import { sendChat } from "../ui/chat";
 import { receiveServerTime } from "../scene/dayNight";
 import type { ChunkManager } from "../world/chunkManager";
+import { CONFIG } from "../config";
 
 export type ServerEvent =
   | { type: "Ready"; id: string }
@@ -38,6 +39,10 @@ export type ClientEvent =
   | { type: "ChatMessage"; message: string }
   | { type: "PlayerHit"; target_id: string };
 
+const POSITION_SEND_INTERVAL_MS = 50;
+const POSITION_CHANGE_THRESHOLD = 0.01;
+const YAW_CHANGE_THRESHOLD = 0.01;
+
 export class Connection {
   myId: string;
   chunkManager: ChunkManager;
@@ -48,6 +53,8 @@ export class Connection {
 
   private lastSentPosition = new THREE.Vector3();
   private lastSentYaw = 0;
+  private positionInterval: number;
+  private hasDisconnected = false;
 
   constructor(
     ip: string,
@@ -67,111 +74,160 @@ export class Connection {
       this.sendEvent({ type: "Join", username });
     };
 
-    this.ws.onclose = () => console.log("disconnected from server");
+    this.ws.onclose = () => {
+      if (!this.hasDisconnected) {
+        this.hasDisconnected = true;
+        sendChat("Disconnected from server.");
+      }
+    };
+
+    this.ws.onerror = (err) => {
+      console.error("WebSocket error", err);
+    };
 
     this.ws.onmessage = (e) => {
-      const event = decode(new Uint8Array(e.data)) as ServerEvent;
-      this.handleEvent(event, world, scene);
+      let event: ServerEvent;
+
+      try {
+        event = decode(new Uint8Array(e.data)) as ServerEvent;
+      } catch (err) {
+        console.error("Failed to decode server event", err);
+        return;
+      }
+
+      try {
+        this.handleEvent(event, world, scene);
+      } catch (err) {
+        console.error("Failed to handle server event", event, err);
+      }
     };
 
     // send player position to server
-    setInterval(() => this.sendPosition(player), 50);
+    this.positionInterval = window.setInterval(
+      () => this.sendPosition(player),
+      POSITION_SEND_INTERVAL_MS,
+    );
+  }
+
+  disconnect() {
+    clearInterval(this.positionInterval);
+    this.ws.close();
   }
 
   private handleEvent(event: ServerEvent, world: World, scene: THREE.Scene) {
     switch (event.type) {
       // if server is ready, start requesting chunks
-      case "Ready":
+      case "Ready": {
         this.chunkManager.start();
         this.myId = event.id;
         break;
+      }
 
       // if received chunk data
-      case "ChunkData":
+      case "ChunkData": {
         const chunk = new Chunk(event.cx, event.cz);
         chunk.blocks = new Uint8Array(event.blocks);
         world.addChunk(chunk);
         this.chunkManager.markReceived(event.cx, event.cz);
         break;
+      }
 
       // for syncing existing players when joining
-      case "PlayerSync":
+      case "PlayerSync": {
         this.remotePlayersMap.set(
           event.id,
           new RemotePlayer(event.id, event.username, scene),
         );
         break;
+      }
 
       // if a new player joined
-      case "PlayerJoined":
+      case "PlayerJoined": {
         this.remotePlayersMap.set(
           event.id,
           new RemotePlayer(event.id, event.username, scene),
         );
         sendChat(`${event.username} joined the game`);
         break;
+      }
 
       // if a player left
-      case "PlayerLeft":
+      case "PlayerLeft": {
         this.remotePlayersMap.get(event.id)?.remove(scene);
         this.remotePlayersMap.delete(event.id);
         sendChat(`${event.username} left the game`);
         break;
+      }
 
       // if a player position changes
-      case "PlayerPosition":
+      case "PlayerPosition": {
         this.remotePlayersMap
           .get(event.id)
           ?.updatePosition(event.x, event.y, event.z, event.yaw);
-
         break;
+      }
 
       // if a block is updated
-      case "BlockUpdate":
+      case "BlockUpdate": {
         world.setBlock(event.x, event.y, event.z, event.block_id);
         world.remeshAt(event.x, event.z);
         break;
+      }
 
       // sync server time
-      case "TimeUpdate":
+      case "TimeUpdate": {
         receiveServerTime(event.time);
         break;
+      }
 
       // if a chat message is received
-      case "ChatMessage":
+      case "ChatMessage": {
         sendChat(`${event.username}: ${event.message}`);
         break;
+      }
 
-      case "PlayerKnockback":
+      case "PlayerKnockback": {
         if (event.id === this.myId) {
-          this.player.knockback.x += event.dx * 12;
-          this.player.knockback.z += event.dz * 12;
-          this.player.velocity.y += 6;
+          this.player.knockback.x +=
+            event.dx * CONFIG.player.horizontalKnockback;
+          this.player.knockback.z +=
+            event.dz * CONFIG.player.horizontalKnockback;
+          this.player.velocity.y += CONFIG.player.verticalKnockback;
         }
         break;
+      }
 
-      case "PlayerHealth":
+      case "PlayerHealth": {
         if (event.id === this.myId) {
           this.player.updateHealth(event.health);
         } else {
           this.remotePlayersMap.get(event.id)?.updateHealth(event.health);
         }
         break;
+      }
 
-      case "PlayerDied":
+      case "PlayerDied": {
         if (event.id === this.myId) {
           sendChat(`${event.username} died.`);
-          this.player.position.set(0, 80, 0);
+          this.player.position.set(
+            CONFIG.world.initialSpawn.x,
+            CONFIG.world.initialSpawn.y,
+            CONFIG.world.initialSpawn.z,
+          );
           this.player.velocity.set(0, 0, 0);
         }
         break;
+      }
     }
   }
 
   private sendPosition(player: Player) {
     const positionChanged =
-      player.position.distanceTo(this.lastSentPosition) > 0.01;
-    const yawChanged = Math.abs(player.yaw - this.lastSentYaw) > 0.01;
+      player.position.distanceTo(this.lastSentPosition) >
+      POSITION_CHANGE_THRESHOLD;
+
+    const yawChanged =
+      Math.abs(player.yaw - this.lastSentYaw) > YAW_CHANGE_THRESHOLD;
 
     if (!positionChanged && !yawChanged) return;
 

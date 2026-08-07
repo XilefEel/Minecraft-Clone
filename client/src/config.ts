@@ -30,6 +30,8 @@ export const CONFIG = {
     width: 0.6,
     eyeHeight: 1.6,
     sensitivity: 0.0025,
+    horizontalKnockback: 12,
+    verticalKnockback: 6,
   },
   world: {
     renderDistance: 12,
