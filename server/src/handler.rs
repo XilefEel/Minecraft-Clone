@@ -126,6 +126,42 @@ async fn stream_chunks(
     Ok(())
 }
 
+async fn load_or_generate_chunk(state: &SharedState, cx: i32, cz: i32) -> Arc<Vec<u8>> {
+    if !state.read().await.world.contains_key(&(cx, cz)) {
+        let (world_dir, noise) = {
+            let s = state.read().await;
+            (format!("worlds/{}", s.world_name), s.noise.clone())
+        };
+        let path = format!("{}/chunk_{}_{}.bin", world_dir, cx, cz);
+
+        let read_path = path.clone();
+        let existing = tokio::task::spawn_blocking(move || std::fs::read(&read_path))
+            .await
+            .unwrap();
+
+        let blocks = if let Ok(data) = existing {
+            Arc::new(data)
+        } else {
+            tokio::task::spawn_blocking(move || {
+                let mut chunk = Chunk::new();
+                chunk.fill_noise(cx, cz, &noise);
+                chunk.blocks
+            })
+            .await
+            .unwrap()
+        };
+
+        state
+            .write()
+            .await
+            .world
+            .entry((cx, cz))
+            .or_insert(Chunk { blocks });
+    }
+
+    state.read().await.world[&(cx, cz)].blocks.clone()
+}
+
 async fn process_client_event(
     event: ClientEvent,
     state: &SharedState,
@@ -249,45 +285,7 @@ async fn process_client_event(
             None
         }
 
-        // when a player requests chunk data
-        ClientEvent::RequestChunk { cx, cz } => {
-            println!("Chunk requested: {}, {}", cx, cz);
-            if !state.read().await.world.contains_key(&(cx, cz)) {
-                let world_dir = format!("worlds/{}", state.read().await.world_name);
-                let path = format!("{}/chunk_{}_{}.bin", world_dir, cx, cz);
-
-                let blocks = if let Ok(data) = std::fs::read(&path) {
-                    Arc::new(data) // read from disk if it exists
-                } else {
-                    // create new chunk
-                    let seed = state.read().await.seed;
-                    let blocks = tokio::task::spawn_blocking(move || {
-                        let mut chunk = Chunk::new();
-                        chunk.fill_noise(cx, cz, seed);
-                        chunk.blocks
-                    })
-                    .await
-                    .unwrap();
-
-                    blocks
-                };
-
-                state
-                    .write()
-                    .await
-                    .world
-                    .entry((cx, cz))
-                    .or_insert(Chunk { blocks });
-            }
-
-            let blocks = state.read().await.world[&(cx, cz)].blocks.clone();
-
-            Some(ServerEvent::ChunkData {
-                cx,
-                cz,
-                blocks: blocks.to_vec(),
-            })
-        }
+        ClientEvent::RequestChunk { .. } => None,
 
         // when a player sends a chat message
         ClientEvent::ChatMessage { message } => {
@@ -398,15 +396,35 @@ async fn event_loop(
     id: &str,
     rx: &mut tokio::sync::broadcast::Receiver<ServerEvent>,
 ) {
+    let (chunk_tx, mut chunk_rx) = tokio::sync::mpsc::unbounded_channel::<ServerEvent>();
+
     loop {
         tokio::select! {
             incoming = socket.recv() => {
                 let Some(Ok(Message::Binary(data))) = incoming else { break };
                 let Ok(event) = from_slice::<ClientEvent>(&data) else { continue };
 
+                if let ClientEvent::RequestChunk { cx, cz } = event {
+                    let state = state.clone();
+                    let chunk_tx = chunk_tx.clone();
+                    tokio::spawn(async move {
+                        let blocks = load_or_generate_chunk(&state, cx, cz).await;
+                        let _ = chunk_tx.send(ServerEvent::ChunkData {
+                            cx,
+                            cz,
+                            blocks: blocks.to_vec(),
+                        });
+                    });
+                    continue;
+                }
+
                 if let Some(response) = process_client_event(event, state, id).await {
                     if send_event(socket, response).await.is_err() { break }
                 }
+            }
+
+            Some(chunk_event) = chunk_rx.recv() => {
+                if send_event(socket, chunk_event).await.is_err() { break }
             }
 
             broadcast = rx.recv() => match broadcast {

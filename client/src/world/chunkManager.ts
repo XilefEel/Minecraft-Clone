@@ -37,9 +37,6 @@ export class ChunkManager {
     this.playerSpeed = Math.sqrt(dx * dx + dz * dz);
     this.lastPlayerPos.set(playerX, playerZ);
 
-    // skip chunk requests if moving too fast
-    if (this.playerSpeed > 150) return;
-
     const cx = Math.floor(playerX / CHUNK_SIZE);
     const cz = Math.floor(playerZ / CHUNK_SIZE);
 

@@ -36,12 +36,10 @@ impl Chunk {
         blocks[idx] = block;
     }
 
-    pub fn fill_noise(&mut self, cx: i32, cz: i32, seed: u64) {
-        let perlin = Perlin::new(seed as u32);
-
+    pub fn fill_noise(&mut self, cx: i32, cz: i32, perlin: &Perlin) {
         let mut blocks = vec![0u8; CHUNK_VOL];
-        let heights = Self::generate_terrain(cx, cz, &perlin, &mut blocks);
-        Self::generate_decorations(cx, cz, &perlin, &heights, &mut blocks);
+        let heights = Self::generate_terrain(cx, cz, perlin, &mut blocks);
+        Self::generate_decorations(cx, cz, perlin, &heights, &mut blocks);
 
         self.blocks = Arc::new(blocks);
     }

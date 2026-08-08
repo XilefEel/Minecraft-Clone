@@ -1,5 +1,6 @@
 use crate::chunk::Chunk;
 use crate::protocol::ServerEvent;
+use noise::Perlin;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
@@ -24,13 +25,15 @@ pub struct GameState {
     pub tx: broadcast::Sender<ServerEvent>,
     pub world_name: String,
     pub seed: u64,
+    pub noise: Arc<Perlin>,
 }
 
 impl GameState {
     pub fn new(world_name: &str, seed: u64) -> (Arc<RwLock<Self>>, broadcast::Sender<ServerEvent>) {
         let (tx, _) = broadcast::channel(100);
-        let mut world = HashMap::new();
+        let noise = Arc::new(Perlin::new(seed as u32));
 
+        let mut world = HashMap::new();
         let world_dir = format!("worlds/{}", world_name);
         std::fs::create_dir_all(&world_dir).unwrap();
 
@@ -44,7 +47,7 @@ impl GameState {
                     }
                 } else {
                     let mut chunk = Chunk::new();
-                    chunk.fill_noise(cx, cz, seed);
+                    chunk.fill_noise(cx, cz, &noise);
                     chunk
                 };
 
@@ -59,6 +62,7 @@ impl GameState {
             tx: tx.clone(),
             world_name: world_name.to_string(),
             seed,
+            noise,
         }));
 
         let state_clone = state.clone();
