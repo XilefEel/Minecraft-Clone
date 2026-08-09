@@ -6,6 +6,7 @@ use uuid::Uuid;
 use crate::{
     chunk::{CHUNK_SIZE, Chunk},
     protocol::{ClientEvent, ServerEvent},
+    rle,
     state::{PlayerState, SharedState},
 };
 
@@ -118,7 +119,7 @@ async fn stream_chunks(
             ServerEvent::ChunkData {
                 cx,
                 cz,
-                blocks: blocks.to_vec(),
+                blocks: rle::encode(&blocks),
             },
         )
         .await?;
@@ -396,6 +397,11 @@ async fn event_loop(
     id: &str,
     rx: &mut tokio::sync::broadcast::Receiver<ServerEvent>,
 ) {
+    // Chunk responses come back on this channel from spawned tasks, instead
+    // of being sent inline in the receive arm below. This is what lets
+    // multiple RequestChunk messages be worked on concurrently: the receive
+    // arm no longer blocks on the slow part (generate/read), it just spawns
+    // a task and immediately goes back to reading the next socket message.
     let (chunk_tx, mut chunk_rx) = tokio::sync::mpsc::unbounded_channel::<ServerEvent>();
 
     loop {
@@ -412,7 +418,7 @@ async fn event_loop(
                         let _ = chunk_tx.send(ServerEvent::ChunkData {
                             cx,
                             cz,
-                            blocks: blocks.to_vec(),
+                            blocks: rle::encode(&blocks),
                         });
                     });
                     continue;

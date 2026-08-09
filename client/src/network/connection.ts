@@ -8,6 +8,7 @@ import { sendChat } from "../ui/chat";
 import { receiveServerTime } from "../scene/dayNight";
 import type { ChunkManager } from "../world/chunkManager";
 import { CONFIG } from "../config";
+import { decodeRle } from "./rle";
 
 export type ServerEvent =
   | { type: "Ready"; id: string }
@@ -126,7 +127,7 @@ export class Connection {
       // if received chunk data
       case "ChunkData": {
         const chunk = new Chunk(event.cx, event.cz);
-        chunk.blocks = new Uint8Array(event.blocks);
+        chunk.blocks = decodeRle(new Uint8Array(event.blocks));
         world.addChunk(chunk);
         this.chunkManager.markReceived(event.cx, event.cz);
         break;

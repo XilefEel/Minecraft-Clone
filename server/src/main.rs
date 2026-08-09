@@ -17,6 +17,7 @@ mod chunk;
 mod cli;
 mod handler;
 mod protocol;
+mod rle;
 mod state;
 mod world_registry;
 

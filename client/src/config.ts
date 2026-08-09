@@ -2,8 +2,8 @@ export const CONFIG = {
   scene: {
     backgroundColor: 0x87ceeb,
     fogColor: 0xffffff,
-    fogNear: 20,
-    fogFar: 200,
+    fogNear: 50,
+    fogFar: 300,
   },
   camera: {
     near: 0.1,
@@ -34,7 +34,7 @@ export const CONFIG = {
     verticalKnockback: 6,
   },
   world: {
-    renderDistance: 12,
+    renderDistance: 20,
     dayDuration: 600000, // milliseconds
     initialSpawn: { x: 0, y: 100, z: 0 },
   },
