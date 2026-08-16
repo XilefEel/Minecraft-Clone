@@ -1,14 +1,14 @@
-# Minecraft Clone
+# Cubit
 
-A browser-based Minecraft clone built with **Three.js** on the client and a **Rust WebSocket server** for real-time multiplayer.
+A browser-based voxel sandbox game built with **Three.js** on the client and a **Rust WebSocket server** for real-time multiplayer.
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Client | TypeScript + Three.js |
-| Server | Rust (WebSocket) |
-| Runtime | Bun + Vite |
+| Layer   | Technology            |
+| ------- | --------------------- |
+| Client  | TypeScript + Three.js |
+| Server  | Rust (WebSocket)      |
+| Runtime | Bun + Vite            |
 
 ## Features
 
@@ -39,13 +39,13 @@ cargo run -- <COMMAND>
 
 #### Commands
 
-| Command | Description |
-|---------|-------------|
-| `list` | List all saved worlds |
+| Command                 | Description                                                  |
+| ----------------------- | ------------------------------------------------------------ |
+| `list`                  | List all saved worlds                                        |
 | `create <world> <seed>` | Create a new world with a name and seed and start the server |
-| `load <world>` | Load an existing world and start the server |
-| `rename <old> <new>` | Rename an existing world |
-| `delete <world>` | Delete a world and its chunk data |
+| `load <world>`          | Load an existing world and start the server                  |
+| `rename <old> <new>`    | Rename an existing world                                     |
+| `delete <world>`        | Delete a world and its chunk data                            |
 
 #### Examples
 
@@ -79,6 +79,7 @@ bun run dev -- --host
 ## How to Play
 
 ### As the Host
+
 1. Start the server (`cargo run -- load <world>`)
 2. Start the client with `bun run dev -- --host`
 3. Open `localhost:5173` in your browser
@@ -89,6 +90,7 @@ bun run dev -- --host
 > 💡 **Share your IP with other players:** On Linux/macOS run `ip a` or `ifconfig`, on Windows run `ipconfig`. Look for your IPv4 Address and share it.
 
 ### As a Player (same network)
+
 1. Open `<host-ip>:5173` in your browser
 2. Enter your **username** and `<host-ip>:3000` as the server address
 3. Click **Play**!

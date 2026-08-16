@@ -4,12 +4,13 @@
         <meta charset="UTF-8" />
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>client</title>
+        <title>Cubit</title>
         <link rel="stylesheet" href="src/style.css" />
     </head>
     <body>
         <div id="title-screen">
-            <h1>Minecraft</h1>
+            <h1>Cubit</h1>
+
             <div id="menu">
                 <input
                     id="username-input"
@@ -29,6 +30,7 @@
         </div>
 
         <canvas id="c"></canvas>
+
         <div id="hud">
             <div id="world-coords"></div>
             <div id="chunk-coords"></div>
@@ -36,13 +38,16 @@
             <div id="day"></div>
             <div id="time"></div>
         </div>
+
         <div id="crosshair"></div>
+
         <input
             id="chat"
             maxlength="255"
             type="text"
             placeholder="Type a message..."
         />
+
         <script type="module" src="/src/main.ts"></script>
     </body>
 </html>
